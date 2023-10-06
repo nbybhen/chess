@@ -1,6 +1,5 @@
 extern crate sdl2;
 
-use std::cmp::{max, min};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -448,10 +447,23 @@ impl Pieces{
         }
         (possible_locations, possible_kills)
     }
-    fn move_piece(&mut self, valid_moves: &Vec<Point>, loc: usize, point: &Point) -> Result<(), String>{
+    fn move_piece(&mut self, valid_moves: &Vec<Point>, valid_kills: &Vec<Point>, loc: usize, point: &Point) -> Result<(), String>{
+        // Ensures piece isn't double-clicked
         if self.locations.get(loc).unwrap() != point {
             if valid_moves.iter().position(|x| x == point) != Option::None {
                 println!("MOVING PIECE");
+                self.locations[loc] = *point;
+                self.first_move[loc] = false;
+            }
+            else if valid_kills.iter().position(|x| x == point) != Option::None {
+                println!("KILLING PIECE");
+                // Deletes previous piece
+                self.locations.remove(loc);
+                self.colors.remove(loc);
+                self.types.remove(loc);
+                self.first_move.remove(loc);
+
+                // Replaces with moved piece
                 self.locations[loc] = *point;
                 self.first_move[loc] = false;
             }
@@ -662,7 +674,7 @@ fn main() -> Result<(), String> {
                     else{
                         //println!("SECOND CLICK");
                         //println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
-                        pieces.move_piece(&valid_moves, loc.unwrap(), &clicked)?;
+                        pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
                         renderer.render_board()?;
                         renderer.render_pieces(&squares, &pieces)?;
                         first_click = true;
