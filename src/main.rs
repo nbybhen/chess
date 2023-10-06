@@ -18,7 +18,7 @@ const SCREEN_HEIGHT: u32 = 800;
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Point {x: u32, y: u32}
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 enum PieceColor{ None, Black, White }
 
 #[derive(Debug, PartialEq)]
@@ -108,12 +108,27 @@ impl Pieces{
         self.locations.iter().position(|x| x.x == point_x && x.y == point_y)
     }
 
+    fn valid_moves(&mut self, color: &PieceColor, pos_loc: &mut Vec<Point>, pos_kills: &mut Vec<Point>, y: u32, x: u32) -> bool{
+        match self.check_by_point(y, x){
+            Some(loc) => {
+                if self.colors[loc] != *color{
+                    pos_kills.push(Point{y, x});
+                }
+                return true;
+            },
+            None => {
+                pos_loc.push(Point{y, x});
+                return false;
+            }
+        }
+    }
+
     fn possible_moves(&mut self, squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>){
         let mut possible_locations: Vec<Point> = vec!();
         let mut possible_kills: Vec<Point> = vec!();
         let piece_type = self.types.get(piece_loc).unwrap();
-        let piece_point = self.locations.get(piece_loc).unwrap();
-        let piece_color = self.colors.get(piece_loc).unwrap();
+        let piece_point = self.locations[piece_loc];
+        let piece_color = self.colors[piece_loc].clone();
         let piece_first_perms = self.first_move.get(piece_loc).unwrap();
 
         match piece_type{
@@ -152,65 +167,36 @@ impl Pieces{
                 println!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
             }
             Type::Rook => {
-                // North
+               // North
                 for index in (0..piece_point.y).rev(){
                     // Ensures there is no piece in the way for valid_moves
-                    match self.check_by_point(index, piece_point.x){
-                        // Sets kill location for piece
-                        Some(loc) => {
-                            if self.colors[loc] != *piece_color {
-                                possible_kills.push(Point{y: index, x: piece_point.x});
-                            }
-                            break;
-                        },
-                        None => {
-                            possible_locations.push(Point{y: index, x: piece_point.x});
-                        }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x){
+                        true => {break;}
+                        false => {}
                     }
                 }
+
                 // South
                 for index in piece_point.y+1..=7 {
-                    match self.check_by_point(index, piece_point.x){
-                        // Sets kill location for piece
-                        Some(loc) => {
-                            if self.colors[loc] != *piece_color {
-                                possible_kills.push(Point{y: index, x: piece_point.x});
-                            }
-                            break;
-                        },
-                        None => {
-                            possible_locations.push(Point{y: index, x: piece_point.x});
-                        }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x){
+                        true => {break;}
+                        false => {}
                     }
                 }
+
                 // East
                 for index in piece_point.x+1..=7 {
-                    match self.check_by_point(piece_point.y, index) {
-                        // Sets kill location for piece
-                        Some(loc) => {
-                            if self.colors[loc] != *piece_color {
-                                possible_kills.push(Point{y: piece_point.y, x: index});
-                            }
-                            break;
-                        },
-                        None => {
-                            possible_locations.push(Point{y: piece_point.y, x: index});
-                        }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index){
+                        true => {break;}
+                        false => {}
                     }
                 }
+
                 // West
                 for index in (0..piece_point.x).rev(){
-                    match self.check_by_point(piece_point.y, index) {
-                        // Sets kill location for piece
-                        Some(loc) => {
-                            if self.colors[loc] != *piece_color {
-                                possible_kills.push(Point{y: piece_point.y, x: index});
-                            }
-                            break;
-                        },
-                        None => {
-                            possible_locations.push(Point{y: piece_point.y, x: index});
-                        }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index){
+                        true => {break;}
+                        false => {}
                     }
                 }
             }
@@ -220,86 +206,191 @@ impl Pieces{
                 let mut y_clone = piece_point.y;
 
                 while x_clone > 0 && y_clone > 0 {
-                    x_clone-=1;
-                    y_clone -=1;
+                    x_clone -= 1;
+                    y_clone -= 1;
 
-                    match self.check_by_point(y_clone, x_clone){
-                        Some(loc) => {
-                            if self.colors.get(loc).unwrap() != piece_color{
-                                possible_kills.push(Point{y: y_clone, x: x_clone});
-                            }
-                            break;
-                        },
-                        None => {
-                            possible_locations.push(Point{y: y_clone, x: x_clone});
-                        }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                        true => { break; },
+                        false => {}
                     }
                 }
 
+                // North-east
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
-                // North-east
+
                 while x_clone < 8 && y_clone > 0 {
                     x_clone+=1;
                     y_clone -=1;
 
-                    match self.check_by_point(y_clone, x_clone){
-                        Some(loc) => {
-                            if self.colors.get(loc).unwrap() != piece_color{
-                                possible_kills.push(Point{y: y_clone, x: x_clone});
-                            }
-                            break;
-                        },
-                        None => {
-                            possible_locations.push(Point{y: y_clone, x: x_clone});
-                        }
-                    }
-                }
-
+                  match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                      true => { break; },
+                      false => {}
+                  }
+              }
+                // South-east
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
-                // South-east
+
                 while x_clone < 8 && y_clone < 8 {
                     x_clone+=1;
                     y_clone +=1;
 
-                    match self.check_by_point(y_clone, x_clone){
-                        Some(loc) => {
-                            if self.colors.get(loc).unwrap() != piece_color{
-                                possible_kills.push(Point{y: y_clone, x: x_clone});
-                            }
-                            break;
-                        },
-                        None => {
-                            possible_locations.push(Point{y: y_clone, x: x_clone});
-                        }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                        true => { break; },
+                        false => {}
                     }
                 }
 
-
+                // South-west
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
-                // South-west
+
                 while x_clone > 0 && y_clone < 8 {
                     x_clone-=1;
                     y_clone +=1;
 
-                    match self.check_by_point(y_clone, x_clone){
-                        Some(loc) => {
-                            if self.colors.get(loc).unwrap() != piece_color{
-                                possible_kills.push(Point{y: y_clone, x: x_clone});
-                            }
-                            break;
-                        },
-                        None => {
-                            possible_locations.push(Point{y: y_clone, x: x_clone});
-                        }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                        true => { break; },
+                        false => {}
                     }
                 }
         }
-            Type::Queen => {}
+            Type::Queen => {
+                // Bishop abilities
+                // North-west
+                let mut x_clone = piece_point.x;
+                let mut y_clone = piece_point.y;
+
+                while x_clone > 0 && y_clone > 0 {
+                    x_clone -= 1;
+                    y_clone -= 1;
+
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                        true => { break; },
+                        false => {}
+                    }
+                }
+
+                // North-east
+                y_clone = piece_point.y;
+                x_clone = piece_point.x;
+
+                while x_clone < 8 && y_clone > 0 {
+                    x_clone+=1;
+                    y_clone -=1;
+
+                  match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                      true => { break; },
+                      false => {}
+                  }
+              }
+                // South-east
+                y_clone = piece_point.y;
+                x_clone = piece_point.x;
+
+                while x_clone < 8 && y_clone < 8 {
+                    x_clone+=1;
+                    y_clone +=1;
+
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                        true => { break; },
+                        false => {}
+                    }
+                }
+
+                // South-west
+                y_clone = piece_point.y;
+                x_clone = piece_point.x;
+
+                while x_clone > 0 && y_clone < 8 {
+                    x_clone-=1;
+                    y_clone +=1;
+
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                        true => { break; },
+                        false => {}
+                    }
+                }
+
+                // ROOK
+                // North
+                for index in (0..piece_point.y).rev(){
+                    // Ensures there is no piece in the way for valid_moves
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x){
+                        true => {break;}
+                        false => {}
+                    }
+                }
+
+                // South
+                for index in piece_point.y+1..=7 {
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x){
+                        true => {break;}
+                        false => {}
+                    }
+                }
+
+                // East
+                for index in piece_point.x+1..=7 {
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index){
+                        true => {break;}
+                        false => {}
+                    }
+                }
+
+                // West
+                for index in (0..piece_point.x).rev(){
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index){
+                        true => {break;}
+                        false => {}
+                    }
+                }
+
+            }
             Type::Knight => {}
-            Type::King => {}
+            Type::King => {
+              // Top
+                if piece_point.y > 0{
+                    // Above
+                    self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x);
+
+                    if piece_point.x > 0{
+                        // North-west
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x-1);
+
+                        // LEFT
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x-1);
+                    }
+
+
+                    if piece_point.x < 7{
+                        // North-east
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x+1);
+
+                        // Right
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x+1);
+
+                    }
+                }
+
+                // Bottom
+                if piece_point.y < 7{
+                    // Backwards
+                    self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x);
+
+                    // South-west
+                    if piece_point.x > 0{
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x-1);
+                    }
+
+                    // South-east
+                    if piece_point.x < 7{
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x+1);
+                    }
+
+                }
+            }
         }
         (possible_locations, possible_kills)
     }
