@@ -103,6 +103,7 @@ impl Pieces{
         Ok(self)
     }
 
+    // Checks if inputted coordinates contain a piece on the board
     fn check_by_point(&self, point_y: u32, point_x: u32) -> Option<usize>{
         self.locations.iter().position(|x| x.x == point_x && x.y == point_y)
     }
@@ -215,11 +216,85 @@ impl Pieces{
             }
             Type::Bishop => {
                 // North-west
-                let x_clone = piece_point.x;
-                let y_clone = piece_point.y;
+                let mut x_clone = piece_point.x;
+                let mut y_clone = piece_point.y;
 
-                while x_clone != 0 && y_clone != 0 {
+                while x_clone > 0 && y_clone > 0 {
+                    x_clone-=1;
+                    y_clone -=1;
 
+                    match self.check_by_point(y_clone, x_clone){
+                        Some(loc) => {
+                            if self.colors.get(loc).unwrap() != piece_color{
+                                possible_kills.push(Point{y: y_clone, x: x_clone});
+                            }
+                            break;
+                        },
+                        None => {
+                            possible_locations.push(Point{y: y_clone, x: x_clone});
+                        }
+                    }
+                }
+
+                y_clone = piece_point.y;
+                x_clone = piece_point.x;
+                // North-east
+                while x_clone < 8 && y_clone > 0 {
+                    x_clone+=1;
+                    y_clone -=1;
+
+                    match self.check_by_point(y_clone, x_clone){
+                        Some(loc) => {
+                            if self.colors.get(loc).unwrap() != piece_color{
+                                possible_kills.push(Point{y: y_clone, x: x_clone});
+                            }
+                            break;
+                        },
+                        None => {
+                            possible_locations.push(Point{y: y_clone, x: x_clone});
+                        }
+                    }
+                }
+
+                y_clone = piece_point.y;
+                x_clone = piece_point.x;
+                // South-east
+                while x_clone < 8 && y_clone < 8 {
+                    x_clone+=1;
+                    y_clone +=1;
+
+                    match self.check_by_point(y_clone, x_clone){
+                        Some(loc) => {
+                            if self.colors.get(loc).unwrap() != piece_color{
+                                possible_kills.push(Point{y: y_clone, x: x_clone});
+                            }
+                            break;
+                        },
+                        None => {
+                            possible_locations.push(Point{y: y_clone, x: x_clone});
+                        }
+                    }
+                }
+
+
+                y_clone = piece_point.y;
+                x_clone = piece_point.x;
+                // South-west
+                while x_clone > 0 && y_clone < 8 {
+                    x_clone-=1;
+                    y_clone +=1;
+
+                    match self.check_by_point(y_clone, x_clone){
+                        Some(loc) => {
+                            if self.colors.get(loc).unwrap() != piece_color{
+                                possible_kills.push(Point{y: y_clone, x: x_clone});
+                            }
+                            break;
+                        },
+                        None => {
+                            possible_locations.push(Point{y: y_clone, x: x_clone});
+                        }
+                    }
                 }
         }
             Type::Queen => {}
