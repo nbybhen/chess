@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use std::cmp::min;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -212,7 +213,11 @@ impl Pieces{
                     }
                 }
             }
-            Type::Bishop => {}
+            Type::Bishop => {
+                for index in 0..min(piece_point.x, piece_point.y) {
+
+                }
+            }
             Type::Queen => {}
             Type::Knight => {}
             Type::King => {}
@@ -442,7 +447,6 @@ fn main() -> Result<(), String> {
                 _ => {}
             }
         }
-
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
