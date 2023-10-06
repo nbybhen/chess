@@ -20,6 +20,7 @@ struct Point {x: u32, y: u32}
 #[derive(PartialEq)]
 enum PieceColor{ None, Black, White }
 
+#[derive(Debug)]
 enum Type {None, Pawn, Rook, Bishop, Queen, Knight, King}
 
 struct Squares {squares: Vec<Rect>, points: Vec<Point>}
@@ -209,7 +210,7 @@ fn main() -> Result<(), String> {
 
 
 
-    let first_click: bool = true;
+    let mut first_click: bool = true;
 
 
 
@@ -222,11 +223,26 @@ fn main() -> Result<(), String> {
                     ..
                 } => break 'running,
                 Event::MouseButtonDown {x, y, ..} => {
-
-                    println!("CLICKED");
+                    let clicked = Point{x: (x/100) as u32, y: (y/100) as u32};
                     if first_click {
-                        let clicked = Point{x: (x/100) as u32, y: (y/100) as u32};
+                        // Gets piece that's clicked on
+                        println!("FIRST CLICK");
                         println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+
+                        // Ensures it exists
+                        let loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
+                        let selected_type = match loc{
+                            Some(x) => pieces.types.get(x).unwrap(),
+                            None => &Type::None
+                        };
+
+                        println!("This piece is: {:?}", selected_type);
+                        first_click = false;
+                    }
+                    else{
+                        println!("SECOND CLICK");
+                        println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                        first_click = true;
                     }
                 }
                 _ => {}
