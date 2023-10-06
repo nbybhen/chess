@@ -14,7 +14,7 @@ use sdl2::mouse::MouseState;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct Point {x: u32, y: u32}
 
 #[derive(PartialEq)]
@@ -51,7 +51,7 @@ impl Pieces{
                 match i{
                     0 => {
                         start_point.y = 0;
-                        println!("RUNNING {j}");
+                        //println!("RUNNING {j}");
                         match j{
                             0 | 7 => self.types.push(Type::Rook),
                             1 | 6 => self.types.push(Type::Knight),
@@ -65,14 +65,14 @@ impl Pieces{
                         self.colors.push(PieceColor::White);
                     }
                     1 => {
-                        println!("RUNNING WHITE PAWNS {j}");
+                        //println!("RUNNING WHITE PAWNS {j}");
                         start_point.y = 1;
                         self.locations.push(start_point);
                         self.colors.push(PieceColor::White);
                         self.types.push(Type::Pawn);
                     }
                     2 => {
-                        println!("RUNNING CURRY FLAVORED PAWNS {j}");
+                        //println!("RUNNING CURRY FLAVORED PAWNS {j}");
                         start_point.y = 6;
 
                         self.locations.push(start_point);
@@ -102,6 +102,10 @@ impl Pieces{
         Ok(self)
     }
 
+    fn check_by_point(&self, point_y: u32, point_x: u32) -> Option<usize>{
+        self.locations.iter().position(|x| x.x == point_x && x.y == point_y)
+    }
+
     fn possible_moves(&mut self, squares: &Squares, piece_loc: usize) -> Vec<Point>{
         let mut possible_locations: Vec<Point> = vec!();
         let piece_type = self.types.get(piece_loc).unwrap();
@@ -115,29 +119,33 @@ impl Pieces{
                 match piece_color{
                     PieceColor::None => {}
                     PieceColor::Black => {
-                        if *piece_first_perms{
+                        if *piece_first_perms && self.check_by_point(piece_point.y-1, piece_point.x) == Option::None{
                             possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
-                            possible_locations.push(Point{y: piece_point.y-2, x: piece_point.x});
+                            if self.check_by_point(piece_point.y-2, piece_point.x) == Option::None{
+                                possible_locations.push(Point{y: piece_point.y-2, x: piece_point.x});
+                            }
                         }
                         else{
-                            if piece_point.y != 0{
+                            if piece_point.y != 0 && self.check_by_point(piece_point.y-1, piece_point.x) == Option::None{
                                 possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
                             }
                         }
                     }
                     PieceColor::White => {
-                        if *piece_first_perms{
+                        if *piece_first_perms && self.check_by_point(piece_point.y+1, piece_point.x) == Option::None{
                             possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
-                            possible_locations.push(Point{y: piece_point.y+2, x: piece_point.x});
+                            if self.check_by_point(piece_point.y+2, piece_point.x) == Option::None{
+                                possible_locations.push(Point{y: piece_point.y+2, x: piece_point.x});
+                            }
                         }
                         else{
-                            if piece_point.y != 0{
+                            if piece_point.y != 0 && self.check_by_point(piece_point.y+1, piece_point.x) == Option::None{
                                 possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
                             }
                         }
                     }
                 }
-                println!("LOADING POSSIBLE PAWN MOVES");
+                println!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
                 // Ensures "first move" gets two possible spaces
 
             }
@@ -148,6 +156,14 @@ impl Pieces{
             Type::King => {}
         }
         possible_locations
+    }
+    fn move_piece(&mut self, valid_moves: &Vec<Point>, loc: usize, point: &Point) -> Result<(), String>{
+        println!("MOVING PIECE");
+        if valid_moves.iter().position(|x| x == point) != Option::None{
+            self.locations[loc] = *point;
+            self.first_move[loc] = false;
+        }
+        Ok(())
     }
 }
 
@@ -190,41 +206,41 @@ impl Renderer{
             match pieces.types.get(index).unwrap(){
                 Type::None => {}
                 Type::Pawn => {
-                    println!("Pawn: {:}", place.y*8+place.x);
+                    //println!("Pawn: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Pawn.png")} else {Path::new("sprites/WhitePawn.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
                                      *squares.squares.get((place.y*8+place.x) as usize).unwrap())?;
                 }
                 Type::Rook => {
-                    println!("Rook: {:}", place.y*8+place.x);
+                    //println!("Rook: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Rook.png")} else {Path::new("sprites/WhiteRook.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
                                       *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::Bishop => {
-                    println!("Bishop: {:}", place.y*8+place.x);
+                    //println!("Bishop: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Bishop.png")} else {Path::new("sprites/WhiteBishop.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None, *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER BISHOP");
                 }
                 Type::Queen => {
-                    println!("Rook: {:}", place.y*8+place.x);
+                    //println!("Rook: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Queen.png")} else {Path::new("sprites/WhiteQueen.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
                                      *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::Knight => {
-                    println!("Knight: {:}", place.y*8+place.x);
+                    //println!("Knight: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Knight.png")} else {Path::new("sprites/WhiteKnight.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
                                      *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::King => {
-                    println!("King: {:}", place.y*8+place.x);
+                    //println!("King: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/King.png")} else {Path::new("sprites/WhiteKing.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
@@ -248,8 +264,7 @@ impl Renderer{
     // Renders possible moves based on piece
     fn render_moves(&mut self, squares: &Squares, possible_moves: &Vec<Point>) -> Result<(), String>{
         println!("RENDERING MOVES");
-        println!("POSSIBLE MOVES: {:?}", possible_moves);
-        println!("SQUARES: {:?}", squares.points);
+        //println!("SQUARES: {:?}", squares.points);
         self.canvas.set_draw_color(Color::RGB(255, 235, 153));
         for item in possible_moves{
             let loc = squares.points.iter().position(|p| p.x == item.x && p.y == item.y);
@@ -266,6 +281,7 @@ impl Renderer{
         self.canvas.present();
         Ok(())
     }
+
 }
 
 fn main() -> Result<(), String> {
@@ -284,7 +300,7 @@ fn main() -> Result<(), String> {
     let mut renderer = Renderer::new(win)?;
 
     // Creates vector for board squares
-    let squares: Squares = Squares{squares: vec![], points: vec![]}.create().unwrap();
+    let mut squares: Squares = Squares{squares: vec![], points: vec![]}.create().unwrap();
     let mut pieces: Pieces = Pieces{locations: vec![], colors: vec![], types: vec![], first_move: vec![]}.create().unwrap();
 
     // Creates Event Loop
@@ -294,9 +310,9 @@ fn main() -> Result<(), String> {
     let _ = renderer.render_pieces(&squares, &pieces);
 
 
-
     let mut first_click: bool = true;
-
+    let mut loc: Option<usize> = Default::default();
+    let mut valid_moves: Vec<Point> = vec!();
 
 
     // Event Loop
@@ -315,7 +331,7 @@ fn main() -> Result<(), String> {
                         println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
 
                         // Ensures it exists
-                        let loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
+                        loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
                         let selected_type = match loc{
                             Some(x) => pieces.types.get(x).unwrap(),
                             None => &Type::None
@@ -324,16 +340,17 @@ fn main() -> Result<(), String> {
                         // Renders moves for selected piece
                         println!("This piece is: {:?}", selected_type);
                         if *selected_type != Type::None{
-                            let valid_moves = pieces.possible_moves(&squares,loc.unwrap());
-                            renderer.render_selected(&squares, &pieces, loc.unwrap());
+                            valid_moves = pieces.possible_moves(&squares,loc.unwrap());
+                            renderer.render_selected(&squares, &pieces, loc.unwrap())?;
                             renderer.render_moves(&squares, &valid_moves)?;
-                            renderer.render_pieces(&squares, &pieces);
+                            renderer.render_pieces(&squares, &pieces)?;
                             first_click = false;
                         }
                     }
                     else{
                         println!("SECOND CLICK");
                         println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                        pieces.move_piece(&valid_moves, loc.unwrap(), &clicked)?;
                         renderer.render_board()?;
                         renderer.render_pieces(&squares, &pieces)?;
                         first_click = true;
