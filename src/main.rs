@@ -16,6 +16,7 @@ const SCREEN_HEIGHT: u32 = 800;
 #[derive(Clone, Copy)]
 struct Point {x: u32, y: u32}
 
+#[derive(PartialEq)]
 enum PieceColor{ None, Black, White }
 
 enum Type {None, Pawn, Rook, Bishop, Queen, Knight, King}
@@ -35,27 +36,60 @@ struct Pieces {locations: Vec<Point>, colors: Vec<PieceColor>, types: Vec<Type>}
 impl Pieces{
     fn create(mut self) -> Result<Pieces, String>{
         let mut start_point: Point = Point { x: 0, y: 0 };
-        // Pawns
-        for i in 0..2{
+        // Renders all beginning piece locations
+        for i in 0..4{
             for j in 0..8{
                 start_point.x = j;
-                self.types.push(Type::Pawn);
                 match i{
                     0 => {
-                        start_point.y = 6;
+                        start_point.y = 0;
+                        println!("RUNNING {j}");
+                        match j{
+                            0 | 7 => self.types.push(Type::Rook),
+                            1 | 6 => self.types.push(Type::Knight),
+                            2 | 5 => self.types.push(Type::Bishop),
+                            3 => self.types.push(Type::King),
+                            4 => self.types.push(Type::Queen),
+                            _ => {println!("UNKNOWN")}
+                        }
+
                         self.locations.push(start_point);
-                        self.colors.push(PieceColor::Black);
+                        self.colors.push(PieceColor::White);
                     }
                     1 => {
+                        println!("RUNNING PAWNS {j}");
                         start_point.y = 1;
                         self.locations.push(start_point);
                         self.colors.push(PieceColor::White);
+                        self.types.push(Type::Pawn);
+                    }
+                    2 => {
+                        start_point.y = 6;
+
+                        self.locations.push(start_point);
+                        self.colors.push(PieceColor::Black);
+                        self.types.push(Type::Pawn);
+                    }
+                    3 => {
+                        start_point.y = 7;
+
+                        match j{
+                            0 | 7 => self.types.push(Type::Rook),
+                            1 | 6 => self.types.push(Type::Knight),
+                            2 | 5 => self.types.push(Type::Bishop),
+                            3 => self.types.push(Type::King),
+                            4 => self.types.push(Type::Queen),
+                            _ => {}
+                        }
+
+                        self.locations.push(start_point);
+                        self.colors.push(PieceColor::Black);
                     }
                     _ => {}
                 }
             }
         }
-        Ok((self))
+        Ok(self)
     }
 }
 
@@ -90,22 +124,53 @@ impl Renderer{
     // Renders pieces onto board tiles
     fn render_pieces(&mut self, squares: &Squares, pieces: &Pieces) -> Result<(), String>{
         let texture_creator = self.canvas.texture_creator();
-        for index in 0..pieces.locations.len(){
+        println!("Len of list: {:}", pieces.types.len());
+        for index in 0..pieces.types.len(){
+            let place = pieces.locations.get(index).unwrap();
+
             match pieces.types.get(index).unwrap(){
                 Type::None => {}
                 Type::Pawn => {
-                    let png: &Path = Path::new("sprites/Pawn.png");
+                    println!("Pawn: {:}", place.y*8+place.x);
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Pawn.png")} else {Path::new("sprites/WhitePawn.png")};
                     let texture = texture_creator.load_texture(png)?;
-                    let place = pieces.locations.get(index).unwrap();
                     self.canvas.copy(&texture, None,
-                                     *squares.squares.get((place.y*8 + place.x) as usize).unwrap())?;
-                    println!("{:}", place.y*8+place.x);
+                                     *squares.squares.get((place.y*8+place.x) as usize).unwrap())?;
                 }
-                Type::Rook => {}
-                Type::Bishop => {}
-                Type::Queen => {}
-                Type::Knight => {}
-                Type::King => {let png: &Path = Path::new("sprites/King.png");}
+                Type::Rook => {
+                    println!("Rook: {:}", place.y*8+place.x);
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Rook.png")} else {Path::new("sprites/WhiteRook.png")};
+                    let texture = texture_creator.load_texture(png)?;
+                    self.canvas.copy(&texture, None,
+                                      *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
+                }
+                Type::Bishop => {
+                    println!("Bishop: {:}", place.y*8+place.x);
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Bishop.png")} else {Path::new("sprites/WhiteBishop.png")};
+                    let texture = texture_creator.load_texture(png)?;
+                    self.canvas.copy(&texture, None, *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER BISHOP");
+                }
+                Type::Queen => {
+                    println!("Rook: {:}", place.y*8+place.x);
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Queen.png")} else {Path::new("sprites/WhiteQueen.png")};
+                    let texture = texture_creator.load_texture(png)?;
+                    self.canvas.copy(&texture, None,
+                                     *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
+                }
+                Type::Knight => {
+                    println!("Knight: {:}", place.y*8+place.x);
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Knight.png")} else {Path::new("sprites/WhiteKnight.png")};
+                    let texture = texture_creator.load_texture(png)?;
+                    self.canvas.copy(&texture, None,
+                                     *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
+                }
+                Type::King => {
+                    println!("King: {:}", place.y*8+place.x);
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/King.png")} else {Path::new("sprites/WhiteKing.png")};
+                    let texture = texture_creator.load_texture(png)?;
+                    self.canvas.copy(&texture, None,
+                                     *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER KING");
+                }
             }
         }
 
