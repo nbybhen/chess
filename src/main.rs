@@ -119,6 +119,7 @@ impl Pieces{
                 match piece_color{
                     PieceColor::None => {}
                     PieceColor::Black => {
+                        // Ensures "first move" gets two possible spaces
                         if *piece_first_perms && self.check_by_point(piece_point.y-1, piece_point.x) == Option::None{
                             possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
                             if self.check_by_point(piece_point.y-2, piece_point.x) == Option::None{
@@ -146,10 +147,39 @@ impl Pieces{
                     }
                 }
                 println!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
-                // Ensures "first move" gets two possible spaces
-
             }
-            Type::Rook => {}
+            Type::Rook => {
+
+                let mut y_pos = piece_point.y;
+                // North
+                for index in (0..piece_point.y).rev(){
+                    if self.check_by_point(index, piece_point.x) != Option::None{ break; }
+                    else{
+                        possible_locations.push(Point{y: index, x:piece_point.x});
+                    }
+                }
+                // South
+                for index in piece_point.y+1..=7 {
+                    if self.check_by_point(index, piece_point.x) != Option::None{ break; }
+                    else{
+                        possible_locations.push(Point{y: index, x:piece_point.x});
+                    }
+                }
+                // East
+                for index in piece_point.x+1..=7 {
+                    if self.check_by_point(piece_point.y, index) != Option::None{ break; }
+                    else{
+                        possible_locations.push(Point{y: piece_point.y, x:index});
+                    }
+                }
+                // West
+                for index in (0..piece_point.x).rev(){
+                    if self.check_by_point(piece_point.y, index) != Option::None{ break; }
+                    else{
+                        possible_locations.push(Point{y: piece_point.y, x:index});
+                    }
+                }
+            }
             Type::Bishop => {}
             Type::Queen => {}
             Type::Knight => {}
@@ -329,8 +359,8 @@ fn main() -> Result<(), String> {
                     let clicked = Point{x: (x/100) as u32, y: (y/100) as u32};
                     if first_click {
                         // Gets piece that's clicked on
-                        println!("FIRST CLICK");
-                        println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                        //println!("FIRST CLICK");
+                        //println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
 
                         // Ensures it exists
                         loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
@@ -350,8 +380,8 @@ fn main() -> Result<(), String> {
                         }
                     }
                     else{
-                        println!("SECOND CLICK");
-                        println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                        //println!("SECOND CLICK");
+                        //println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
                         pieces.move_piece(&valid_moves, loc.unwrap(), &clicked)?;
                         renderer.render_board()?;
                         renderer.render_pieces(&squares, &pieces)?;
