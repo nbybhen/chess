@@ -348,7 +348,58 @@ impl Pieces{
                 }
 
             }
-            Type::Knight => {}
+            Type::Knight => {
+                // Above
+                if piece_point.y > 1{
+
+                    // Upper left
+                    if piece_point.x > 0 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-2, piece_point.x-1);
+                    }
+
+                    // Upper right
+                    if piece_point.x < 7{
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-2, piece_point.x+1);
+                    }
+                }
+
+                // Below
+                if piece_point.y < 6{
+                    // Lower left
+                    if piece_point.x > 0{
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+2, piece_point.x-1);
+                    }
+
+                    // Lower right
+                    if piece_point.x < 7{
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-2, piece_point.x+1);
+                    }
+                }
+
+                // Left
+                if piece_point.x > 1{
+                    // Upper left
+                    if piece_point.y > 0 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x-2);
+                    }
+                    // Lower left
+                    if piece_point.y < 7{
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x-2);
+                    }
+                }
+
+                // Right
+                if piece_point.x < 6{
+                    // Upper right
+                    if piece_point.y > 0{
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x+2);
+                    }
+                    // Lower right
+                    if piece_point.y < 7{
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x+2);
+                    }
+                }
+            }
             Type::King => {
               // Top
                 if piece_point.y > 0{
