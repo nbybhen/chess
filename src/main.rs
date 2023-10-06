@@ -447,25 +447,29 @@ impl Pieces{
         }
         (possible_locations, possible_kills)
     }
-    fn move_piece(&mut self, valid_moves: &Vec<Point>, valid_kills: &Vec<Point>, loc: usize, point: &Point) -> Result<(), String>{
+
+    // first_click = piece being moved
+    fn move_piece(&mut self, valid_moves: &Vec<Point>, valid_kills: &Vec<Point>, first_click: usize, point: &Point) -> Result<(), String>{
         // Ensures piece isn't double-clicked
-        if self.locations.get(loc).unwrap() != point {
+        if self.locations.get(first_click).unwrap() != point {
             if valid_moves.iter().position(|x| x == point) != Option::None {
                 println!("MOVING PIECE");
-                self.locations[loc] = *point;
-                self.first_move[loc] = false;
+                self.locations[first_click] = *point;
+                self.first_move[first_click] = false;
             }
             else if valid_kills.iter().position(|x| x == point) != Option::None {
                 println!("KILLING PIECE");
+                self.locations[first_click] = *point;
+                self.first_move[first_click] = false;
+
                 // Deletes previous piece
-                self.locations.remove(loc);
-                self.colors.remove(loc);
-                self.types.remove(loc);
-                self.first_move.remove(loc);
+                let dying_piece_loc = self.locations.iter().position(|p| p == point).unwrap();
 
                 // Replaces with moved piece
-                self.locations[loc] = *point;
-                self.first_move[loc] = false;
+                self.locations.remove(dying_piece_loc);
+                self.colors.remove(dying_piece_loc);
+                self.types.remove(dying_piece_loc);
+                self.first_move.remove(dying_piece_loc);
             }
         }
         Ok(())
