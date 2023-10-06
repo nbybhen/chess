@@ -6,6 +6,9 @@ use sdl2::pixels::Color;
 use std::time::Duration;
 use sdl2::rect::Rect;
 use sdl2::render::*;
+use std::env;
+use std::path::Path;
+use sdl2::image::{InitFlag, LoadTexture};
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
@@ -19,7 +22,7 @@ impl Renderer{
     }
 
     // Creates board tiles and renders them
-    fn createBoard(&mut self) -> Result<(), String>{
+    fn render_board(&mut self) -> Result<(), String>{
         self.canvas.set_draw_color(Color::RGB(172, 113, 57));
         self.canvas.clear();
 
@@ -35,15 +38,21 @@ impl Renderer{
                 }
             }
         }
-
         self.canvas.present();
         Ok(())
+    }
+
+    // Renders pieces onto board tiles
+    fn render_pieces(&mut self){
+        todo!()
     }
 }
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
+    let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
+
 
     // Creates Window
     let win = video_subsystem.window("CHESS", SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -53,6 +62,8 @@ fn main() -> Result<(), String> {
 
     // Creates Renderer struct for handling canvas renders
     let mut renderer = Renderer::new(win)?;
+
+
 
     // Creates Event Loop
     let mut event_pump = sdl_context.event_pump()?;
@@ -69,7 +80,7 @@ fn main() -> Result<(), String> {
             }
         }
 
-        let _ = renderer.createBoard();
+        let _ = renderer.render_board();
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
 
