@@ -9,6 +9,7 @@ use sdl2::render::*;
 use std::env;
 use std::path::Path;
 use sdl2::image::{InitFlag, LoadTexture};
+use sdl2::mouse::MouseState;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
@@ -57,13 +58,14 @@ impl Pieces{
                         self.colors.push(PieceColor::White);
                     }
                     1 => {
-                        println!("RUNNING PAWNS {j}");
+                        println!("RUNNING WHITE PAWNS {j}");
                         start_point.y = 1;
                         self.locations.push(start_point);
                         self.colors.push(PieceColor::White);
                         self.types.push(Type::Pawn);
                     }
                     2 => {
+                        println!("RUNNING CURRY FLAVORED PAWNS {j}");
                         start_point.y = 6;
 
                         self.locations.push(start_point);
@@ -95,6 +97,7 @@ impl Pieces{
 
 struct Renderer {canvas: WindowCanvas}
 impl Renderer{
+    // Initializes renderer
     fn new(win: sdl2::video::Window) -> Result<Renderer, String>{
         let canvas = win.into_canvas().build().map_err(|e| e.to_string())?;
         Ok(Renderer{canvas})
@@ -173,7 +176,6 @@ impl Renderer{
                 }
             }
         }
-
         self.canvas.present();
 
         Ok(())
@@ -200,19 +202,33 @@ fn main() -> Result<(), String> {
     let pieces: Pieces = Pieces{locations: vec![], colors: vec![], types: vec![]}.create().unwrap();
 
     // Creates Event Loop
-    let mut event_pump = sdl_context.event_pump()?;
+    let mut events = sdl_context.event_pump()?;
 
     let _ = renderer.render_board();
     let _ = renderer.render_pieces(&squares, &pieces);
 
+
+
+    let first_click: bool = true;
+
+
+
     // Event Loop
     'running: loop {
-        for event in event_pump.poll_iter() {
+        for event in events.poll_iter() {
             match event {
                 Event::Quit { .. } | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
+                Event::MouseButtonDown {x, y, ..} => {
+
+                    println!("CLICKED");
+                    if first_click {
+                        let clicked = Point{x: (x/100) as u32, y: (y/100) as u32};
+                        println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                    }
+                }
                 _ => {}
             }
         }
