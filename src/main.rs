@@ -108,6 +108,9 @@ impl Pieces{
         self.locations.iter().position(|x| x.x == point_x && x.y == point_y)
     }
 
+    // Checks Pieces vectors to ensure either:
+    // 1. Point is "open" to move (empty / taken by same color)
+    // 2. Point contains piece of opposite color
     fn valid_moves(&mut self, color: &PieceColor, pos_loc: &mut Vec<Point>, pos_kills: &mut Vec<Point>, y: u32, x: u32) -> bool{
         match self.check_by_point(y, x){
             Some(loc) => {
@@ -372,7 +375,7 @@ impl Pieces{
 
                     // Lower right
                     if piece_point.x < 7{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-2, piece_point.x+1);
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+2, piece_point.x+1);
                     }
                 }
 
