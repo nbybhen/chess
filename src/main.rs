@@ -106,8 +106,9 @@ impl Pieces{
         self.locations.iter().position(|x| x.x == point_x && x.y == point_y)
     }
 
-    fn possible_moves(&mut self, squares: &Squares, piece_loc: usize) -> Vec<Point>{
+    fn possible_moves(&mut self, squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>){
         let mut possible_locations: Vec<Point> = vec!();
+        let mut possible_kills: Vec<Point> = vec!();
         let piece_type = self.types.get(piece_loc).unwrap();
         let piece_point = self.locations.get(piece_loc).unwrap();
         let piece_color = self.colors.get(piece_loc).unwrap();
@@ -149,32 +150,43 @@ impl Pieces{
                 println!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
             }
             Type::Rook => {
-
-                let mut y_pos = piece_point.y;
                 // North
                 for index in (0..piece_point.y).rev(){
-                    if self.check_by_point(index, piece_point.x) != Option::None{ break; }
+                    // Ensures there is no piece in the way for valid_moves
+                    if self.check_by_point(index, piece_point.x) != Option::None{
+                        // Sets kill location for piece
+                        possible_kills.push(Point{y: index, x: piece_point.x});
+                        break;
+                    }
                     else{
                         possible_locations.push(Point{y: index, x:piece_point.x});
                     }
                 }
                 // South
                 for index in piece_point.y+1..=7 {
-                    if self.check_by_point(index, piece_point.x) != Option::None{ break; }
+                    if self.check_by_point(index, piece_point.x) != Option::None{
+                        possible_kills.push(Point{y: index, x: piece_point.x});
+                        break;
+                    }
                     else{
                         possible_locations.push(Point{y: index, x:piece_point.x});
                     }
                 }
                 // East
                 for index in piece_point.x+1..=7 {
-                    if self.check_by_point(piece_point.y, index) != Option::None{ break; }
+                    if self.check_by_point(piece_point.y, index) != Option::None{
+                        possible_kills.push(Point{y: piece_point.y, x: index});
+                        break;
+                    }
                     else{
                         possible_locations.push(Point{y: piece_point.y, x:index});
                     }
                 }
                 // West
                 for index in (0..piece_point.x).rev(){
-                    if self.check_by_point(piece_point.y, index) != Option::None{ break; }
+                    if self.check_by_point(piece_point.y, index) != Option::None{
+                        possible_kills.push(Point{y: piece_point.y, x: index});
+                        break; }
                     else{
                         possible_locations.push(Point{y: piece_point.y, x:index});
                     }
@@ -185,7 +197,7 @@ impl Pieces{
             Type::Knight => {}
             Type::King => {}
         }
-        possible_locations
+        (possible_locations, possible_kills)
     }
     fn move_piece(&mut self, valid_moves: &Vec<Point>, loc: usize, point: &Point) -> Result<(), String>{
         if self.locations.get(loc).unwrap() != point {
@@ -281,7 +293,6 @@ impl Renderer{
             }
         }
         self.canvas.present();
-
         Ok(())
     }
 
@@ -310,10 +321,26 @@ impl Renderer{
                 }
             }
         }
-        self.canvas.present();
         Ok(())
     }
 
+    fn render_kills(&mut self, squares: &Squares, possible_kills: &Vec<Point>) -> Result<(), String>{
+        println!("RENDERING KILLS");
+        self.canvas.set_draw_color(Color::RGB(255, 51, 51));
+        for item in possible_kills{
+            let loc = squares.points.iter().position(|p| p.x == item.x && p.y == item.y);
+            match loc{
+                Some(x) => {
+                    println!("KILL AT POINT: {:?}", x);
+                    self.canvas.fill_rect(*squares.squares.get(x).unwrap())?;
+                },
+                None => {
+                    println!("KILL POINT NOT FOUND");
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 fn main() -> Result<(), String> {
@@ -345,6 +372,7 @@ fn main() -> Result<(), String> {
     let mut first_click: bool = true;
     let mut loc: Option<usize> = Default::default();
     let mut valid_moves: Vec<Point> = vec!();
+    let mut valid_kills: Vec<Point> = vec!();
 
 
     // Event Loop
@@ -372,9 +400,12 @@ fn main() -> Result<(), String> {
                         // Renders moves for selected piece
                         println!("This piece is: {:?}", selected_type);
                         if *selected_type != Type::None{
-                            valid_moves = pieces.possible_moves(&squares,loc.unwrap());
+                            let pair = pieces.possible_moves(&squares,loc.unwrap());
+                            valid_moves = pair.0;
+                            valid_kills = pair.1;
                             renderer.render_selected(&squares, &pieces, loc.unwrap())?;
                             renderer.render_moves(&squares, &valid_moves)?;
+                            renderer.render_kills(&squares, &valid_kills)?;
                             renderer.render_pieces(&squares, &pieces)?;
                             first_click = false;
                         }
