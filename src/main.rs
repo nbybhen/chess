@@ -18,10 +18,10 @@ const SCREEN_HEIGHT: u32 = 800;
 struct Point {x: u32, y: u32}
 
 #[derive(PartialEq, Clone)]
-enum PieceColor{ None, Black, White }
+enum PieceColor{ Black, White }
 
 #[derive(Debug, PartialEq)]
-enum Type {None, Pawn, Rook, Bishop, Queen, Knight, King}
+enum Type {Pawn, Rook, Bishop, Queen, Knight, King}
 
 struct Squares {squares: Vec<Rect>, points: Vec<Point>}
 impl Squares{
@@ -134,10 +134,8 @@ impl Pieces{
         let piece_first_perms = self.first_move.get(piece_loc).unwrap();
 
         match piece_type{
-            Type::None => {}
             Type::Pawn => {
                 match piece_color{
-                    PieceColor::None => {}
                     PieceColor::Black => {
                         // Ensures "first move" gets two possible spaces
                         if *piece_first_perms && self.check_by_point(piece_point.y-1, piece_point.x) == Option::None{
@@ -149,6 +147,28 @@ impl Pieces{
                         else{
                             if piece_point.y != 0 && self.check_by_point(piece_point.y-1, piece_point.x) == Option::None{
                                 possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
+                            }
+
+                            if piece_point.y != 0 {
+                                // Left kill
+                                match self.check_by_point(piece_point.y-1, piece_point.x-1){
+                                    Some(loc) => {
+                                        if piece_color != self.colors[loc] {
+                                            possible_kills.push(Point{y:piece_point.y-1, x:piece_point.x-1})
+                                        }
+                                    }
+                                    None => {}
+                                }
+
+                                // Right kill
+                                match self.check_by_point(piece_point.y-1, piece_point.x+1){
+                                    Some(loc) => {
+                                        if piece_color != self.colors[loc] {
+                                            possible_kills.push(Point{y:piece_point.y-1, x:piece_point.x+1})
+                                        }
+                                    }
+                                    None => {}
+                                }
                             }
                         }
                     }
@@ -513,7 +533,6 @@ impl Renderer{
             let place = pieces.locations.get(index).unwrap();
 
             match pieces.types.get(index).unwrap(){
-                Type::None => {}
                 Type::Pawn => {
                     //println!("Pawn: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Pawn.png")} else {Path::new("sprites/WhitePawn.png")};
@@ -659,13 +678,13 @@ fn main() -> Result<(), String> {
                         // Ensures it exists
                         loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
                         let selected_type = match loc{
-                            Some(x) => pieces.types.get(x).unwrap(),
-                            None => &Type::None
+                            Some(x) => pieces.types.get(x),
+                            None => Option::None
                         };
 
                         // Renders moves for selected piece
                         println!("This piece is: {:?}", selected_type);
-                        if *selected_type != Type::None{
+                        if selected_type != Option::None{
                             let pair = pieces.possible_moves(&squares,loc.unwrap());
                             valid_moves = pair.0;
                             valid_kills = pair.1;
