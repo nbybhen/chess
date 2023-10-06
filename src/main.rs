@@ -30,7 +30,7 @@ impl Squares{
         let height: u32 = SCREEN_HEIGHT/8;
         for index in 0..64{
             self.squares.push(Rect::new((width*(index % 8)) as i32, (height*(index / 8)) as i32, width, height));
-            self.points.push(Point{x: (width*(index % 8))/100, y: (height*(index / 8))/100});
+            self.points.push(Point{x: (width*(index % 8))/(SCREEN_WIDTH/8), y: (height*(index / 8))/(SCREEN_HEIGHT/8)});
         }
         Ok(self)
     }
@@ -493,11 +493,11 @@ impl Renderer{
             for column in 0..8{
                 if row%2 == 0 && column%2 == 0{
                     self.canvas.set_draw_color(Color::RGB(230, 204, 179));
-                    self.canvas.fill_rect(Rect::new(column*100, row*100, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
+                    self.canvas.fill_rect(Rect::new((column * (SCREEN_HEIGHT / 8)) as i32, (row * (SCREEN_WIDTH / 8)) as i32, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
                 }
                 if row%2 == 1 && column%2 == 1{
                     self.canvas.set_draw_color(Color::RGB(230, 204, 179));
-                    self.canvas.fill_rect(Rect::new(column*100, row*100, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
+                    self.canvas.fill_rect(Rect::new((column * (SCREEN_HEIGHT / 8)) as i32, (row * (SCREEN_WIDTH / 8)) as i32, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
                 }
             }
         }
@@ -575,11 +575,12 @@ impl Renderer{
         //println!("SQUARES: {:?}", squares.points);
         self.canvas.set_draw_color(Color::RGB(255, 235, 153));
         for item in possible_moves{
-            let loc = squares.points.iter().position(|p| p.x == item.x && p.y == item.y);
+            let loc = squares.points.iter().position(|p| p == item);
             match loc{
-                Some(x) => {
-                    println!("AT POINT: {:?}", x);
-                    self.canvas.fill_rect(*squares.squares.get(x).unwrap())?;
+                Some(p) => {
+                    println!("Item: {item:?}");
+                    println!("AT POINT: {:?}", p);
+                    self.canvas.fill_rect(*squares.squares.get(p).unwrap())?;
                 },
                 None => {
                     println!("POINT NOT FOUND");
@@ -649,7 +650,7 @@ fn main() -> Result<(), String> {
                     ..
                 } => break 'running,
                 Event::MouseButtonDown {x, y, ..} => {
-                    let clicked = Point{x: (x/100) as u32, y: (y/100) as u32};
+                    let clicked = Point{x: (x/(SCREEN_WIDTH/8) as i32) as u32, y: (y/(SCREEN_HEIGHT/8) as i32) as u32};
                     if first_click {
                         // Gets piece that's clicked on
                         //println!("FIRST CLICK");
