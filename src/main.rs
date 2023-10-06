@@ -14,13 +14,13 @@ use sdl2::mouse::MouseState;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 struct Point {x: u32, y: u32}
 
 #[derive(PartialEq)]
 enum PieceColor{ None, Black, White }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Type {None, Pawn, Rook, Bishop, Queen, Knight, King}
 
 struct Squares {squares: Vec<Rect>, points: Vec<Point>}
@@ -30,11 +30,17 @@ impl Squares{
         let height: u32 = SCREEN_HEIGHT/8;
         for index in 0..64{
             self.squares.push(Rect::new((width*(index % 8)) as i32, (height*(index / 8)) as i32, width, height));
+            self.points.push(Point{x: (width*(index % 8))/100, y: (height*(index / 8))/100});
         }
         Ok(self)
     }
 }
-struct Pieces {locations: Vec<Point>, colors: Vec<PieceColor>, types: Vec<Type>}
+struct Pieces {
+    locations: Vec<Point>,
+    colors: Vec<PieceColor>,
+    types: Vec<Type>,
+    first_move: Vec<bool>
+}
 impl Pieces{
     fn create(mut self) -> Result<Pieces, String>{
         let mut start_point: Point = Point { x: 0, y: 0 };
@@ -90,9 +96,58 @@ impl Pieces{
                     }
                     _ => {}
                 }
+                self.first_move.push(true);
             }
         }
         Ok(self)
+    }
+
+    fn possible_moves(&mut self, squares: &Squares, piece_loc: usize) -> Vec<Point>{
+        let mut possible_locations: Vec<Point> = vec!();
+        let piece_type = self.types.get(piece_loc).unwrap();
+        let piece_point = self.locations.get(piece_loc).unwrap();
+        let piece_color = self.colors.get(piece_loc).unwrap();
+        let piece_first_perms = self.first_move.get(piece_loc).unwrap();
+
+        match piece_type{
+            Type::None => {}
+            Type::Pawn => {
+                match piece_color{
+                    PieceColor::None => {}
+                    PieceColor::Black => {
+                        if *piece_first_perms{
+                            possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
+                            possible_locations.push(Point{y: piece_point.y-2, x: piece_point.x});
+                        }
+                        else{
+                            if piece_point.y != 0{
+                                possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
+                            }
+                        }
+                    }
+                    PieceColor::White => {
+                        if *piece_first_perms{
+                            possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
+                            possible_locations.push(Point{y: piece_point.y+2, x: piece_point.x});
+                        }
+                        else{
+                            if piece_point.y != 0{
+                                possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
+                            }
+                        }
+                    }
+                }
+                println!("LOADING POSSIBLE PAWN MOVES");
+                // Ensures "first move" gets two possible spaces
+
+            }
+            Type::Rook => {}
+            Type::Bishop => {}
+            Type::Queen => {}
+            Type::Knight => {}
+            Type::King => {}
+        }
+        possible_locations
     }
 }
 
@@ -181,6 +236,28 @@ impl Renderer{
 
         Ok(())
     }
+
+    // Renders possible moves based on piece
+    fn render_moves(&mut self, squares: &Squares, possible_moves: &Vec<Point>) -> Result<(), String>{
+        println!("RENDERING MOVES");
+        println!("POSSIBLE MOVES: {:?}", possible_moves);
+        println!("SQUARES: {:?}", squares.points);
+        self.canvas.set_draw_color(Color::RGB(255, 235, 153));
+        for item in possible_moves{
+            let loc = squares.points.iter().position(|p| p.x == item.x && p.y == item.y);
+            match loc{
+                Some(x) => {
+                    println!("AT POINT: {:?}", x);
+                    self.canvas.fill_rect(*squares.squares.get(x).unwrap())?;
+                },
+                None => {
+                    println!("POINT NOT FOUND");
+                }
+            }
+        }
+        self.canvas.present();
+        Ok(())
+    }
 }
 
 fn main() -> Result<(), String> {
@@ -200,7 +277,7 @@ fn main() -> Result<(), String> {
 
     // Creates vector for board squares
     let squares: Squares = Squares{squares: vec![], points: vec![]}.create().unwrap();
-    let pieces: Pieces = Pieces{locations: vec![], colors: vec![], types: vec![]}.create().unwrap();
+    let mut pieces: Pieces = Pieces{locations: vec![], colors: vec![], types: vec![], first_move: vec![]}.create().unwrap();
 
     // Creates Event Loop
     let mut events = sdl_context.event_pump()?;
@@ -236,12 +313,19 @@ fn main() -> Result<(), String> {
                             None => &Type::None
                         };
 
+                        // Renders moves for selected piece
                         println!("This piece is: {:?}", selected_type);
-                        first_click = false;
+                        if *selected_type != Type::None{
+                            let valid_moves = pieces.possible_moves(&squares,loc.unwrap());
+                            renderer.render_moves(&squares, &valid_moves)?;
+                            first_click = false;
+                        }
                     }
                     else{
                         println!("SECOND CLICK");
                         println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                        renderer.render_board()?;
+                        renderer.render_pieces(&squares, &pieces)?;
                         first_click = true;
                     }
                 }
