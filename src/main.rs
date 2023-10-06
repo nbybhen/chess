@@ -237,6 +237,14 @@ impl Renderer{
         Ok(())
     }
 
+    fn render_selected(&mut self, square: &Squares, pieces: &Pieces, loc: usize) -> Result<(), String>{
+        println!("RENDERING SELECTED SQUARE");
+        self.canvas.set_draw_color(Color::RGB(179, 204, 255));
+        let point = pieces.locations.get(loc).expect("CANNOT FIND PIECE LOCATION");
+        self.canvas.fill_rect(*square.squares.get((point.y*8+point.x) as usize).unwrap());
+        Ok(())
+    }
+
     // Renders possible moves based on piece
     fn render_moves(&mut self, squares: &Squares, possible_moves: &Vec<Point>) -> Result<(), String>{
         println!("RENDERING MOVES");
@@ -317,7 +325,9 @@ fn main() -> Result<(), String> {
                         println!("This piece is: {:?}", selected_type);
                         if *selected_type != Type::None{
                             let valid_moves = pieces.possible_moves(&squares,loc.unwrap());
+                            renderer.render_selected(&squares, &pieces, loc.unwrap());
                             renderer.render_moves(&squares, &valid_moves)?;
+                            renderer.render_pieces(&squares, &pieces);
                             first_click = false;
                         }
                     }
