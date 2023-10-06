@@ -13,8 +13,53 @@ use sdl2::image::{InitFlag, LoadTexture};
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
-struct Renderer {canvas: WindowCanvas}
+#[derive(Clone, Copy)]
+struct Point {x: u32, y: u32}
 
+enum PieceColor{ None, Black, White }
+
+enum Type {None, Pawn, Rook, Bishop, Queen, Knight, King}
+
+struct Squares {squares: Vec<Rect>, points: Vec<Point>}
+impl Squares{
+    fn create(mut self) -> Result<Squares, String>{
+        let width: u32 = SCREEN_WIDTH/8;
+        let height: u32 = SCREEN_HEIGHT/8;
+        for index in 0..64{
+            self.squares.push(Rect::new((width*(index % 8)) as i32, (height*(index / 8)) as i32, width, height));
+        }
+        Ok(self)
+    }
+}
+struct Pieces {locations: Vec<Point>, colors: Vec<PieceColor>, types: Vec<Type>}
+impl Pieces{
+    fn create(mut self) -> Result<Pieces, String>{
+        let mut start_point: Point = Point { x: 0, y: 0 };
+        // Pawns
+        for i in 0..2{
+            for j in 0..8{
+                start_point.x = j;
+                self.types.push(Type::Pawn);
+                match i{
+                    0 => {
+                        start_point.y = 6;
+                        self.locations.push(start_point);
+                        self.colors.push(PieceColor::Black);
+                    }
+                    1 => {
+                        start_point.y = 1;
+                        self.locations.push(start_point);
+                        self.colors.push(PieceColor::White);
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Ok((self))
+    }
+}
+
+struct Renderer {canvas: WindowCanvas}
 impl Renderer{
     fn new(win: sdl2::video::Window) -> Result<Renderer, String>{
         let canvas = win.into_canvas().build().map_err(|e| e.to_string())?;
@@ -43,8 +88,30 @@ impl Renderer{
     }
 
     // Renders pieces onto board tiles
-    fn render_pieces(&mut self){
-        todo!()
+    fn render_pieces(&mut self, squares: &Squares, pieces: &Pieces) -> Result<(), String>{
+        let texture_creator = self.canvas.texture_creator();
+        for index in 0..pieces.locations.len(){
+            match pieces.types.get(index).unwrap(){
+                Type::None => {}
+                Type::Pawn => {
+                    let png: &Path = Path::new("sprites/Pawn.png");
+                    let texture = texture_creator.load_texture(png)?;
+                    let place = pieces.locations.get(index).unwrap();
+                    self.canvas.copy(&texture, None,
+                                     *squares.squares.get((place.y*8 + place.x) as usize).unwrap())?;
+                    println!("{:}", place.y*8+place.x);
+                }
+                Type::Rook => {}
+                Type::Bishop => {}
+                Type::Queen => {}
+                Type::Knight => {}
+                Type::King => {let png: &Path = Path::new("sprites/King.png");}
+            }
+        }
+
+        self.canvas.present();
+
+        Ok(())
     }
 }
 
@@ -63,10 +130,15 @@ fn main() -> Result<(), String> {
     // Creates Renderer struct for handling canvas renders
     let mut renderer = Renderer::new(win)?;
 
-
+    // Creates vector for board squares
+    let squares: Squares = Squares{squares: vec![], points: vec![]}.create().unwrap();
+    let pieces: Pieces = Pieces{locations: vec![], colors: vec![], types: vec![]}.create().unwrap();
 
     // Creates Event Loop
     let mut event_pump = sdl_context.event_pump()?;
+
+    let _ = renderer.render_board();
+    let _ = renderer.render_pieces(&squares, &pieces);
 
     // Event Loop
     'running: loop {
@@ -80,7 +152,7 @@ fn main() -> Result<(), String> {
             }
         }
 
-        let _ = renderer.render_board();
+
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
 
