@@ -168,6 +168,7 @@ impl Pieces{
                                         }
                                     }
                                     None => {}
+
                                 }
                             }
                         }
