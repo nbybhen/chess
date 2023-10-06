@@ -1,6 +1,6 @@
 extern crate sdl2;
 
-use std::cmp::min;
+use std::cmp::{max, min};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -214,10 +214,14 @@ impl Pieces{
                 }
             }
             Type::Bishop => {
-                for index in 0..min(piece_point.x, piece_point.y) {
+                // North-west
+                let x_clone = piece_point.x;
+                let y_clone = piece_point.y;
+
+                while x_clone != 0 && y_clone != 0 {
 
                 }
-            }
+        }
             Type::Queen => {}
             Type::Knight => {}
             Type::King => {}
