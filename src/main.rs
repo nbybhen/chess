@@ -18,12 +18,23 @@ impl Renderer{
         Ok(Renderer{canvas})
     }
 
+    // Creates board tiles and renders them
     fn createBoard(&mut self) -> Result<(), String>{
-        self.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        self.canvas.set_draw_color(Color::RGB(172, 113, 57));
         self.canvas.clear();
 
-        self.canvas.set_draw_color(Color::RGB(255, 0, 0));
-        self.canvas.fill_rect(Rect::new(0, 0, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
+        for row in 0..8{
+            for column in 0..8{
+                if row%2 == 0 && column%2 == 0{
+                    self.canvas.set_draw_color(Color::RGB(230, 204, 179));
+                    self.canvas.fill_rect(Rect::new(column*100, row*100, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
+                }
+                if row%2 == 1 && column%2 == 1{
+                    self.canvas.set_draw_color(Color::RGB(230, 204, 179));
+                    self.canvas.fill_rect(Rect::new(column*100, row*100, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
+                }
+            }
+        }
 
         self.canvas.present();
         Ok(())
@@ -58,7 +69,7 @@ fn main() -> Result<(), String> {
             }
         }
 
-        renderer.createBoard();
+        let _ = renderer.createBoard();
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
 
