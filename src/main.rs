@@ -153,42 +153,62 @@ impl Pieces{
                 // North
                 for index in (0..piece_point.y).rev(){
                     // Ensures there is no piece in the way for valid_moves
-                    if self.check_by_point(index, piece_point.x) != Option::None{
+                    match self.check_by_point(index, piece_point.x){
                         // Sets kill location for piece
-                        possible_kills.push(Point{y: index, x: piece_point.x});
-                        break;
-                    }
-                    else{
-                        possible_locations.push(Point{y: index, x:piece_point.x});
+                        Some(loc) => {
+                            if self.colors[loc] != *piece_color {
+                                possible_kills.push(Point{y: index, x: piece_point.x});
+                            }
+                            break;
+                        },
+                        None => {
+                            possible_locations.push(Point{y: index, x: piece_point.x});
+                        }
                     }
                 }
                 // South
                 for index in piece_point.y+1..=7 {
-                    if self.check_by_point(index, piece_point.x) != Option::None{
-                        possible_kills.push(Point{y: index, x: piece_point.x});
-                        break;
-                    }
-                    else{
-                        possible_locations.push(Point{y: index, x:piece_point.x});
+                    match self.check_by_point(index, piece_point.x){
+                        // Sets kill location for piece
+                        Some(loc) => {
+                            if self.colors[loc] != *piece_color {
+                                possible_kills.push(Point{y: index, x: piece_point.x});
+                            }
+                            break;
+                        },
+                        None => {
+                            possible_locations.push(Point{y: index, x: piece_point.x});
+                        }
                     }
                 }
                 // East
                 for index in piece_point.x+1..=7 {
-                    if self.check_by_point(piece_point.y, index) != Option::None{
-                        possible_kills.push(Point{y: piece_point.y, x: index});
-                        break;
-                    }
-                    else{
-                        possible_locations.push(Point{y: piece_point.y, x:index});
+                    match self.check_by_point(piece_point.y, index) {
+                        // Sets kill location for piece
+                        Some(loc) => {
+                            if self.colors[loc] != *piece_color {
+                                possible_kills.push(Point{y: piece_point.y, x: index});
+                            }
+                            break;
+                        },
+                        None => {
+                            possible_locations.push(Point{y: piece_point.y, x: index});
+                        }
                     }
                 }
                 // West
                 for index in (0..piece_point.x).rev(){
-                    if self.check_by_point(piece_point.y, index) != Option::None{
-                        possible_kills.push(Point{y: piece_point.y, x: index});
-                        break; }
-                    else{
-                        possible_locations.push(Point{y: piece_point.y, x:index});
+                    match self.check_by_point(piece_point.y, index) {
+                        // Sets kill location for piece
+                        Some(loc) => {
+                            if self.colors[loc] != *piece_color {
+                                possible_kills.push(Point{y: piece_point.y, x: index});
+                            }
+                            break;
+                        },
+                        None => {
+                            possible_locations.push(Point{y: piece_point.y, x: index});
+                        }
                     }
                 }
             }
