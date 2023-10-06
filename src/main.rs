@@ -158,10 +158,12 @@ impl Pieces{
         possible_locations
     }
     fn move_piece(&mut self, valid_moves: &Vec<Point>, loc: usize, point: &Point) -> Result<(), String>{
-        println!("MOVING PIECE");
-        if valid_moves.iter().position(|x| x == point) != Option::None{
-            self.locations[loc] = *point;
-            self.first_move[loc] = false;
+        if self.locations.get(loc).unwrap() != point {
+            if valid_moves.iter().position(|x| x == point) != Option::None {
+                println!("MOVING PIECE");
+                self.locations[loc] = *point;
+                self.first_move[loc] = false;
+            }
         }
         Ok(())
     }
