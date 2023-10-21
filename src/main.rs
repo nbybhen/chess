@@ -20,16 +20,17 @@ const SCREEN_HEIGHT: u32 = 800;
 enum State {Paused, Play, Check}
 
 impl State{
-    fn change_state(mut self, squares: &Squares, pieces: &mut Pieces) -> Result<State, String>{
+    fn change_state(self, squares: &Squares, pieces: &mut Pieces) -> Result<State, String>{
         let piece_count = pieces.locations.len();
 
-        let white_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King && pieces.colors.get(i).unwrap() == &PieceColor::White).unwrap();
-        let black_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King && pieces.colors.get(i).unwrap() == &PieceColor::Black).unwrap();
+        let white_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King
+            && pieces.colors.get(i).unwrap() == &PieceColor::White).unwrap();
+        //let black_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King && pieces.colors.get(i).unwrap() == &PieceColor::Black).unwrap();
 
 
         for index in 0..piece_count{
             let grouped = pieces.possible_moves(squares, index);
-            let moves = grouped.0;
+            //let moves = grouped.0;
             let kills = grouped.1;
 
             for point in kills {
@@ -680,7 +681,7 @@ fn main() -> Result<(), String> {
     let mut renderer = Renderer::new(win)?;
 
     // Creates vector for board squares
-    let mut squares: Squares = Squares{squares: vec![], points: vec![]}.create().unwrap();
+    let squares: Squares = Squares{squares: vec![], points: vec![]}.create().unwrap();
     let mut pieces: Pieces = Pieces{locations: vec![], colors: vec![], types: vec![], first_move: vec![]}.create().unwrap();
 
     // Creates Event Loop
