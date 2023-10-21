@@ -6,13 +6,39 @@ use sdl2::pixels::Color;
 use std::time::Duration;
 use sdl2::rect::Rect;
 use sdl2::render::*;
-use std::env;
 use std::path::Path;
 use sdl2::image::{InitFlag, LoadTexture};
-use sdl2::mouse::MouseState;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum State {Paused, Play, Check}
+
+impl State{
+    fn change_state(mut self, squares: &Squares, pieces: &mut Pieces) -> Result<State, String>{
+        let piece_count = pieces.locations.len();
+
+        let white_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King && pieces.colors.get(i).unwrap() == &PieceColor::White).unwrap();
+        let black_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King && pieces.colors.get(i).unwrap() == &PieceColor::Black).unwrap();
+
+
+        for index in 0..piece_count{
+            let grouped = pieces.possible_moves(squares, index);
+            let moves = grouped.0;
+            let kills = grouped.1;
+
+            for point in kills {
+                if point == *pieces.locations.get(white_king_loc).unwrap() {
+                    println!("KING IS IN DANGER!!!! ");
+                    return Ok(State::Check);
+                }
+            }
+
+        }
+        Ok(State::Play)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Point {x: u32, y: u32}
@@ -187,7 +213,7 @@ impl Pieces{
                         }
                     }
                 }
-                println!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
+                //println!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
             }
             Type::Rook => {
                // North
@@ -529,7 +555,7 @@ impl Renderer{
     // Renders pieces onto board tiles
     fn render_pieces(&mut self, squares: &Squares, pieces: &Pieces) -> Result<(), String>{
         let texture_creator = self.canvas.texture_creator();
-        println!("Len of list: {:}", pieces.types.len());
+        //println!("Len of list: {:}", pieces.types.len());
         for index in 0..pieces.types.len(){
             let place = pieces.locations.get(index).unwrap();
 
@@ -598,8 +624,8 @@ impl Renderer{
             let loc = squares.points.iter().position(|p| p == item);
             match loc{
                 Some(p) => {
-                    println!("Item: {item:?}");
-                    println!("AT POINT: {:?}", p);
+                    //println!("Item: {item:?}");
+                    //println!("AT POINT: {:?}", p);
                     self.canvas.fill_rect(*squares.squares.get(p).unwrap())?;
                 },
                 None => {
@@ -617,7 +643,7 @@ impl Renderer{
             let loc = squares.points.iter().position(|p| p.x == item.x && p.y == item.y);
             match loc{
                 Some(x) => {
-                    println!("KILL AT POINT: {:?}", x);
+                    //println!("KILL AT POINT: {:?}", x);
                     self.canvas.fill_rect(*squares.squares.get(x).unwrap())?;
                 },
                 None => {
@@ -655,10 +681,12 @@ fn main() -> Result<(), String> {
     let _ = renderer.render_pieces(&squares, &pieces);
 
 
+    // Presets variables (mutable)
     let mut first_click: bool = true;
     let mut loc: Option<usize> = Default::default();
     let mut valid_moves: Vec<Point> = vec!();
     let mut valid_kills: Vec<Point> = vec!();
+    let mut state: State = State::Play;
 
 
     // Event Loop
@@ -702,12 +730,21 @@ fn main() -> Result<(), String> {
                         pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
                         renderer.render_board()?;
                         renderer.render_pieces(&squares, &pieces)?;
+                        state = state.change_state(&squares, &mut pieces)?;
                         first_click = true;
+
+                        println!("Current state: {state:?}");
+                        // Checks if it is in CHECK
+                        if state == State::Check {
+                            break 'running;
+                        }
                     }
                 }
                 _ => {}
             }
         }
+
+
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
