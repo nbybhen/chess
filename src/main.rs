@@ -1,5 +1,9 @@
 extern crate sdl2;
 
+#[macro_use]
+extern crate log;
+
+use log::debug;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -69,6 +73,7 @@ struct Pieces {
 }
 impl Pieces{
     fn create(mut self) -> Result<Pieces, String>{
+        debug!("CREATING PIECES");
         let mut start_point: Point = Point { x: 0, y: 0 };
         // Renders all beginning piece locations
         for i in 0..4{
@@ -77,6 +82,7 @@ impl Pieces{
                 match i{
                     0 => {
                         start_point.y = 0;
+
                         //println!("RUNNING {j}");
                         match j{
                             0 | 7 => self.types.push(Type::Rook),
@@ -608,7 +614,7 @@ impl Renderer{
     }
 
     fn render_selected(&mut self, square: &Squares, pieces: &Pieces, loc: usize) -> Result<(), String>{
-        println!("RENDERING SELECTED SQUARE");
+        debug!("RENDERING SELECTED SQUARE");
         self.canvas.set_draw_color(Color::RGB(179, 204, 255));
         let point = pieces.locations.get(loc).expect("CANNOT FIND PIECE LOCATION");
         self.canvas.fill_rect(*square.squares.get((point.y*8+point.x) as usize).unwrap());
@@ -659,6 +665,9 @@ fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
+
+    // Initializes the logger
+    env_logger::init();
 
 
     // Creates Window
@@ -734,14 +743,21 @@ fn main() -> Result<(), String> {
                         first_click = true;
 
                         println!("Current state: {state:?}");
-                        // Checks if it is in CHECK
-                        if state == State::Check {
-                            break 'running;
-                        }
+
                     }
                 }
                 _ => {}
             }
+        }
+
+        // Checks if it is in CHECK
+        match state {
+            State::Check => {
+                let temp = PieceColor::White;
+                break 'running
+            },
+            State::Play => (),
+            State::Paused => unreachable!(),
         }
 
 
