@@ -34,7 +34,7 @@ impl State{
 
             for point in kills {
                 if point == *pieces.locations.get(white_king_loc).unwrap() {
-                    println!("KING IS IN DANGER!!!! ");
+                    warn!("KING IS IN DANGER!!!! ");
                     return Ok(State::Check);
                 }
             }
@@ -83,28 +83,28 @@ impl Pieces{
                     0 => {
                         start_point.y = 0;
 
-                        //println!("RUNNING {j}");
+                        //debug!("RUNNING {j}");
                         match j{
                             0 | 7 => self.types.push(Type::Rook),
                             1 | 6 => self.types.push(Type::Knight),
                             2 | 5 => self.types.push(Type::Bishop),
                             3 => self.types.push(Type::King),
                             4 => self.types.push(Type::Queen),
-                            _ => {println!("UNKNOWN")}
+                            _ => {error!("UNKNOWN")}
                         }
 
                         self.locations.push(start_point);
                         self.colors.push(PieceColor::White);
                     }
                     1 => {
-                        //println!("RUNNING WHITE PAWNS {j}");
+                        //debug!("RUNNING WHITE PAWNS {j}");
                         start_point.y = 1;
                         self.locations.push(start_point);
                         self.colors.push(PieceColor::White);
                         self.types.push(Type::Pawn);
                     }
                     2 => {
-                        //println!("RUNNING CURRY FLAVORED PAWNS {j}");
+                        //debug!("RUNNING CURRY FLAVORED PAWNS {j}");
                         start_point.y = 6;
 
                         self.locations.push(start_point);
@@ -219,7 +219,7 @@ impl Pieces{
                         }
                     }
                 }
-                //println!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
+                //debug!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
             }
             Type::Rook => {
                // North
@@ -274,7 +274,7 @@ impl Pieces{
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
 
-                while x_clone < 8 && y_clone > 0 {
+                while x_clone < 7 && y_clone > 0 {
                     x_clone+=1;
                     y_clone -=1;
 
@@ -287,7 +287,7 @@ impl Pieces{
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
 
-                while x_clone < 8 && y_clone < 8 {
+                while x_clone < 7 && y_clone < 7 {
                     x_clone+=1;
                     y_clone +=1;
 
@@ -301,7 +301,7 @@ impl Pieces{
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
 
-                while x_clone > 0 && y_clone < 8 {
+                while x_clone > 0 && y_clone < 7 {
                     x_clone-=1;
                     y_clone +=1;
 
@@ -331,7 +331,7 @@ impl Pieces{
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
 
-                while x_clone < 8 && y_clone > 0 {
+                while x_clone < 7 && y_clone > 0 {
                     x_clone+=1;
                     y_clone -=1;
 
@@ -344,7 +344,7 @@ impl Pieces{
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
 
-                while x_clone < 8 && y_clone < 8 {
+                while x_clone < 7 && y_clone < 7 {
                     x_clone+=1;
                     y_clone +=1;
 
@@ -358,7 +358,7 @@ impl Pieces{
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
 
-                while x_clone > 0 && y_clone < 8 {
+                while x_clone > 0 && y_clone < 7 {
                     x_clone-=1;
                     y_clone +=1;
 
@@ -506,12 +506,12 @@ impl Pieces{
         // Ensures piece isn't double-clicked
         if self.locations.get(first_click).unwrap() != point {
             if valid_moves.iter().position(|x| x == point) != Option::None {
-                println!("MOVING PIECE");
+                debug!("MOVING PIECE");
                 self.locations[first_click] = *point;
                 self.first_move[first_click] = false;
             }
             else if valid_kills.iter().position(|x| x == point) != Option::None {
-                println!("KILLING PIECE");
+                debug!("KILLING PIECE");
                 self.locations[first_click] = *point;
                 self.first_move[first_click] = false;
 
@@ -561,47 +561,47 @@ impl Renderer{
     // Renders pieces onto board tiles
     fn render_pieces(&mut self, squares: &Squares, pieces: &Pieces) -> Result<(), String>{
         let texture_creator = self.canvas.texture_creator();
-        //println!("Len of list: {:}", pieces.types.len());
+        //debug!("Len of list: {:}", pieces.types.len());
         for index in 0..pieces.types.len(){
             let place = pieces.locations.get(index).unwrap();
 
             match pieces.types.get(index).unwrap(){
                 Type::Pawn => {
-                    //println!("Pawn: {:}", place.y*8+place.x);
+                    //debug!("Pawn: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Pawn.png")} else {Path::new("sprites/WhitePawn.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
                                      *squares.squares.get((place.y*8+place.x) as usize).unwrap())?;
                 }
                 Type::Rook => {
-                    //println!("Rook: {:}", place.y*8+place.x);
+                    //debug!("Rook: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Rook.png")} else {Path::new("sprites/WhiteRook.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
                                       *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::Bishop => {
-                    //println!("Bishop: {:}", place.y*8+place.x);
+                    //debug!("Bishop: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Bishop.png")} else {Path::new("sprites/WhiteBishop.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None, *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER BISHOP");
                 }
                 Type::Queen => {
-                    //println!("Rook: {:}", place.y*8+place.x);
+                    //debug!("Rook: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Queen.png")} else {Path::new("sprites/WhiteQueen.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
                                      *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::Knight => {
-                    //println!("Knight: {:}", place.y*8+place.x);
+                    //debug!("Knight: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Knight.png")} else {Path::new("sprites/WhiteKnight.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
                                      *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::King => {
-                    //println!("King: {:}", place.y*8+place.x);
+                    //debug!("King: {:}", place.y*8+place.x);
                     let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/King.png")} else {Path::new("sprites/WhiteKing.png")};
                     let texture = texture_creator.load_texture(png)?;
                     self.canvas.copy(&texture, None,
@@ -623,37 +623,37 @@ impl Renderer{
 
     // Renders possible moves based on piece
     fn render_moves(&mut self, squares: &Squares, possible_moves: &Vec<Point>) -> Result<(), String>{
-        println!("RENDERING MOVES");
-        //println!("SQUARES: {:?}", squares.points);
+        debug!("RENDERING MOVES");
+        //debug!("SQUARES: {:?}", squares.points);
         self.canvas.set_draw_color(Color::RGB(255, 235, 153));
         for item in possible_moves{
             let loc = squares.points.iter().position(|p| p == item);
             match loc{
                 Some(p) => {
-                    //println!("Item: {item:?}");
-                    //println!("AT POINT: {:?}", p);
+                    //debug!("Item: {item:?}");
+                    debug!("AT POINT: {:?}", p);
                     self.canvas.fill_rect(*squares.squares.get(p).unwrap())?;
                 },
                 None => {
-                    println!("POINT NOT FOUND");
+                    error!("POINT NOT FOUND: {:?}", *item);
                 }
             }
         }
         Ok(())
     }
 
-    fn render_kills(&mut self, squares: &Squares, possible_kills: &Vec<Point>) -> Result<(), String>{
-        println!("RENDERING KILLS");
+    fn render_kills(&mut self, squares: &Squares,   possible_kills: &Vec<Point>) -> Result<(), String>{
+        debug!("RENDERING KILLS");
         self.canvas.set_draw_color(Color::RGB(255, 51, 51));
         for item in possible_kills{
             let loc = squares.points.iter().position(|p| p.x == item.x && p.y == item.y);
             match loc{
                 Some(x) => {
-                    //println!("KILL AT POINT: {:?}", x);
+                    debug!("KILL AT POINT: {:?}", x);
                     self.canvas.fill_rect(*squares.squares.get(x).unwrap())?;
                 },
                 None => {
-                    println!("KILL POINT NOT FOUND");
+                    error!("KILL POINT NOT FOUND");
                 }
             }
         }
@@ -710,8 +710,8 @@ fn main() -> Result<(), String> {
                     let clicked = Point{x: (x/(SCREEN_WIDTH/8) as i32) as u32, y: (y/(SCREEN_HEIGHT/8) as i32) as u32};
                     if first_click {
                         // Gets piece that's clicked on
-                        //println!("FIRST CLICK");
-                        //println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                        //debug!("FIRST CLICK");
+                        //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
 
                         // Ensures it exists
                         loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
@@ -721,7 +721,7 @@ fn main() -> Result<(), String> {
                         };
 
                         // Renders moves for selected piece
-                        println!("This piece is: {:?}", selected_type);
+                        debug!("This piece is: {:?}", selected_type);
                         if selected_type != Option::None{
                             let pair = pieces.possible_moves(&squares,loc.unwrap());
                             valid_moves = pair.0;
@@ -734,15 +734,15 @@ fn main() -> Result<(), String> {
                         }
                     }
                     else{
-                        //println!("SECOND CLICK");
-                        //println!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                        //debug!("SECOND CLICK");
+                        //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
                         pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
                         renderer.render_board()?;
                         renderer.render_pieces(&squares, &pieces)?;
                         state = state.change_state(&squares, &mut pieces)?;
                         first_click = true;
 
-                        println!("Current state: {state:?}");
+                        debug!("Current state: {state:?}");
 
                     }
                 }
