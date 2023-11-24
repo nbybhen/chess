@@ -20,12 +20,14 @@ const SCREEN_HEIGHT: u32 = 800;
 enum State {Paused, Play, Check}
 
 impl State{
-    fn change_state(self, squares: &Squares, pieces: &mut Pieces) -> Result<State, String>{
+    fn change_state(self, squares: &Squares, pieces: &mut Pieces) -> Result<(State, Vec<usize>), String>{
         let piece_count = pieces.locations.len();
 
         let white_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King
             && pieces.colors.get(i).unwrap() == &PieceColor::White).unwrap();
-        //let black_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King && pieces.colors.get(i).unwrap() == &PieceColor::Black).unwrap();
+
+        let mut predators_locs: Vec<usize> = vec!();
+        let mut make_check = false;
 
 
         for index in 0..piece_count{
@@ -36,12 +38,17 @@ impl State{
             for point in kills {
                 if point == *pieces.locations.get(white_king_loc).unwrap() {
                     warn!("KING IS IN DANGER!!!! ");
-                    return Ok(State::Check);
+                    make_check = true;
+                    predators_locs.push(index);
                 }
             }
-
         }
-        Ok(State::Play)
+        if make_check {
+            Ok((State::Check, predators_locs))
+        }
+        else {
+            Ok((State::Play, predators_locs))
+        }
     }
 }
 
@@ -618,7 +625,7 @@ impl Renderer{
         debug!("RENDERING SELECTED SQUARE");
         self.canvas.set_draw_color(Color::RGB(179, 204, 255));
         let point = pieces.locations.get(loc).expect("CANNOT FIND PIECE LOCATION");
-        self.canvas.fill_rect(*square.squares.get((point.y*8+point.x) as usize).unwrap());
+        let _ = self.canvas.fill_rect(*square.squares.get((point.y*8+point.x) as usize).unwrap());
         Ok(())
     }
 
@@ -660,6 +667,25 @@ impl Renderer{
         }
         Ok(())
     }
+
+    fn render_as_pred(&mut self, squares: &Squares, pieces: &Pieces, preds: Vec<usize>) {
+        // Sets predators to green
+        self.canvas.set_draw_color(Color::RGB(75, 200, 10));
+        for item in preds {
+            let point = pieces.locations.get(item).unwrap();
+            let loc = squares.points.iter().position(|p| p.x == point.x && p.y == point.y);
+            match loc {
+                Some(x) => {
+                    debug!("FOUND PREDATOR");
+                    self.canvas.fill_rect(*squares.squares.get(x).unwrap()).unwrap();
+                },
+                None => {
+                    error!("CANNOT FIND PREDATOR");
+                }
+            }
+        }
+
+    }
 }
 
 fn main() -> Result<(), String> {
@@ -697,74 +723,94 @@ fn main() -> Result<(), String> {
     let mut valid_moves: Vec<Point> = vec!();
     let mut valid_kills: Vec<Point> = vec!();
     let mut state: State = State::Play;
+    let mut predators: Vec<usize> = vec!();
 
 
     // Event Loop
     'running: loop {
-        for event in events.poll_iter() {
-            match event {
-                Event::Quit { .. } | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                Event::MouseButtonDown {x, y, ..} => {
-                    let clicked = Point{x: (x/(SCREEN_WIDTH/8) as i32) as u32, y: (y/(SCREEN_HEIGHT/8) as i32) as u32};
-                    if first_click {
-                        // Gets piece that's clicked on
-                        //debug!("FIRST CLICK");
-                        //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
-
-                        // Ensures it exists
-                        loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
-                        let selected_type = match loc{
-                            Some(x) => pieces.types.get(x),
-                            None => Option::None
-                        };
-
-                        // Renders moves for selected piece
-                        debug!("This piece is: {:?}", selected_type);
-                        if selected_type != Option::None{
-                            let pair = pieces.possible_moves(&squares,loc.unwrap());
-                            valid_moves = pair.0;
-                            valid_kills = pair.1;
-                            renderer.render_selected(&squares, &pieces, loc.unwrap())?;
-                            renderer.render_moves(&squares, &valid_moves)?;
-                            renderer.render_kills(&squares, &valid_kills)?;
-                            renderer.render_pieces(&squares, &pieces)?;
-                            first_click = false;
-                        }
-                    }
-                    else{
-                        //debug!("SECOND CLICK");
-                        //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
-                        pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
-                        renderer.render_board()?;
-                        renderer.render_pieces(&squares, &pieces)?;
-                        state = state.change_state(&squares, &mut pieces)?;
-                        first_click = true;
-
-                        debug!("Current state: {state:?}");
-
-                    }
-                }
-                _ => {}
-            }
-        }
-
         // Checks if it is in CHECK
         match state {
             State::Check => {
-                let temp = PieceColor::White;
-                break 'running
+                let _ = renderer.render_as_pred(&squares, &pieces, predators.clone());
+                let _ = renderer.render_pieces(&squares, &pieces);
+                'test: loop {
+                    for event in events.poll_iter() {
+                        match event {
+                            Event::Quit { .. } | Event::KeyDown {
+                                keycode: Some(Keycode::Escape),
+                                ..
+                            } => break 'running,
+
+                            Event::MouseButtonDown {x, y, ..} => {
+                                println!("WORKED WOOOOOOOOOOOOOOOOOOOO")
+                            }
+                            _ => {}
+
+                        }
+                    }
+                }
             },
-            State::Play => (),
+
+            State::Play => {
+                for event in events.poll_iter() {
+                    match event {
+                        Event::Quit { .. } | Event::KeyDown {
+                        keycode: Some(Keycode::Escape),
+                            ..
+                        } => break 'running,
+                        Event::MouseButtonDown {x, y, ..} => {
+                            let clicked = Point{x: (x/(SCREEN_WIDTH/8) as i32) as u32, y: (y/(SCREEN_HEIGHT/8) as i32) as u32};
+                            if first_click {
+                                // Gets piece that's clicked on
+                                //debug!("FIRST CLICK");
+                                //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+
+                                // Ensures it exists
+                                loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
+                                let selected_type = match loc{
+                                    Some(x) => pieces.types.get(x),
+                                    None => Option::None
+                                };
+
+                                // Renders moves for selected piece
+                                debug!("This piece is: {:?}", selected_type);
+                                if selected_type != Option::None{
+                                    let pair = pieces.possible_moves(&squares,loc.unwrap());
+                                    valid_moves = pair.0;
+                                    valid_kills = pair.1;
+                                    renderer.render_selected(&squares, &pieces, loc.unwrap())?;
+                                    renderer.render_moves(&squares, &valid_moves)?;
+                                    renderer.render_kills(&squares, &valid_kills)?;
+                                    renderer.render_pieces(&squares, &pieces)?;
+                                    first_click = false;
+                                }
+                            }
+                            else{
+                                //debug!("SECOND CLICK");
+                                //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
+                                pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
+                                renderer.render_board()?;
+                                renderer.render_pieces(&squares, &pieces)?;
+                                let temp = state.change_state(&squares, &mut pieces)?;
+                                state = temp.0;
+                                predators = temp.1;
+                                first_click = true;
+
+                                debug!("Current state: {state:?}");
+
+                            }
+                        }
+                        _ => {}
+                    }
+                } 
+            } 
+
             State::Paused => unreachable!(),
         }
-
-
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
 
     Ok(())
 }
+
