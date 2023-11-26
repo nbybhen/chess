@@ -62,8 +62,9 @@ enum PieceColor{ Black, White }
 enum Type {Pawn, Rook, Bishop, Queen, Knight, King}
 
 struct Squares {squares: Vec<Rect>, points: Vec<Point>}
+
 impl Squares{
-    fn create(mut self) -> Result<Squares, String>{
+    fn create(mut self) -> Result<Self, String>{
         let width: u32 = SCREEN_WIDTH/8;
         let height: u32 = SCREEN_HEIGHT/8;
         for index in 0..64{
@@ -80,7 +81,7 @@ struct Pieces {
     first_move: Vec<bool>
 }
 impl Pieces{
-    fn create(mut self) -> Result<Pieces, String>{
+    fn create(mut self) -> Result<Self, String>{
         debug!("CREATING PIECES");
         let mut start_point: Point = Point { x: 0, y: 0 };
         // Renders all beginning piece locations
@@ -142,7 +143,7 @@ impl Pieces{
         Ok(self)
     }
 
-    // Checks if inputted coordinates contain a piece on the board
+    // Checks if inputted coordinates contain a piece on the board and returns the location
     fn check_by_point(&self, point_y: u32, point_x: u32) -> Option<usize>{
         self.locations.iter().position(|x| x.x == point_x && x.y == point_y)
     }
@@ -156,16 +157,16 @@ impl Pieces{
                 if self.colors[loc] != *color{
                     pos_kills.push(Point{y, x});
                 }
-                return true;
+                true
             },
             None => {
                 pos_loc.push(Point{y, x});
-                return false;
+                false
             }
         }
     }
 
-    fn possible_moves(&mut self, squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>){
+    fn possible_moves(&mut self, _squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>){
         let mut possible_locations: Vec<Point> = vec!();
         let mut possible_kills: Vec<Point> = vec!();
         let piece_type = self.types.get(piece_loc).unwrap();
@@ -178,14 +179,14 @@ impl Pieces{
                 match piece_color{
                     PieceColor::Black => {
                         // Ensures "first move" gets two possible spaces
-                        if *piece_first_perms && self.check_by_point(piece_point.y-1, piece_point.x) == Option::None{
+                        if *piece_first_perms && self.check_by_point(piece_point.y-1, piece_point.x).is_none(){
                             possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
-                            if self.check_by_point(piece_point.y-2, piece_point.x) == Option::None{
+                            if self.check_by_point(piece_point.y-2, piece_point.x).is_none(){
                                 possible_locations.push(Point{y: piece_point.y-2, x: piece_point.x});
                             }
                         }
                         else{
-                            if piece_point.y != 0 && self.check_by_point(piece_point.y-1, piece_point.x) == Option::None{
+                            if piece_point.y != 0 && self.check_by_point(piece_point.y-1, piece_point.x).is_none(){
                                 possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
                             }
 
@@ -214,16 +215,14 @@ impl Pieces{
                         }
                     }
                     PieceColor::White => {
-                        if *piece_first_perms && self.check_by_point(piece_point.y+1, piece_point.x) == Option::None{
+                        if *piece_first_perms && self.check_by_point(piece_point.y+1, piece_point.x).is_none(){
                             possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
-                            if self.check_by_point(piece_point.y+2, piece_point.x) == Option::None{
+                            if self.check_by_point(piece_point.y+2, piece_point.x).is_none(){
                                 possible_locations.push(Point{y: piece_point.y+2, x: piece_point.x});
                             }
                         }
-                        else{
-                            if piece_point.y != 0 && self.check_by_point(piece_point.y+1, piece_point.x) == Option::None{
-                                possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
-                            }
+                        else if piece_point.y != 0 && self.check_by_point(piece_point.y+1, piece_point.x).is_none(){
+                            possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
                         }
                     }
                 }
@@ -513,12 +512,12 @@ impl Pieces{
     fn move_piece(&mut self, valid_moves: &Vec<Point>, valid_kills: &Vec<Point>, first_click: usize, point: &Point) -> Result<(), String>{
         // Ensures piece isn't double-clicked
         if self.locations.get(first_click).unwrap() != point {
-            if valid_moves.iter().position(|x| x == point) != Option::None {
+            if valid_moves.iter().any(|x| x == point) {
                 debug!("MOVING PIECE");
                 self.locations[first_click] = *point;
                 self.first_move[first_click] = false;
             }
-            else if valid_kills.iter().position(|x| x == point) != Option::None {
+            else if valid_kills.iter().any(|x| x == point) {
                 debug!("KILLING PIECE");
                 self.locations[first_click] = *point;
                 self.first_move[first_click] = false;
@@ -668,23 +667,12 @@ impl Renderer{
         Ok(())
     }
 
-    fn render_as_pred(&mut self, squares: &Squares, pieces: &Pieces, preds: Vec<usize>) {
+    fn render_as_pred(&mut self, squares: &Squares, path: &Vec<Point>) {
         // Sets predators to green
         self.canvas.set_draw_color(Color::RGB(75, 200, 10));
-        for item in preds {
-            let point = pieces.locations.get(item).unwrap();
-            let loc = squares.points.iter().position(|p| p.x == point.x && p.y == point.y);
-            match loc {
-                Some(x) => {
-                    debug!("FOUND PREDATOR");
-                    self.canvas.fill_rect(*squares.squares.get(x).unwrap()).unwrap();
-                },
-                None => {
-                    error!("CANNOT FIND PREDATOR");
-                }
-            }
-        }
-
+        for point in path.clone() {
+            self.canvas.fill_rect(*squares.squares.get((point.y*8+point.x) as usize).unwrap()).unwrap();
+        }            
     }
 }
 
@@ -728,28 +716,79 @@ fn main() -> Result<(), String> {
 
     // Event Loop
     'running: loop {
-        // Checks if it is in CHECK
         match state {
+            // Checks if it is in CHECK
             State::Check => {
-                let _ = renderer.render_as_pred(&squares, &pieces, predators.clone());
-                let _ = renderer.render_pieces(&squares, &pieces);
-                'test: loop {
+                    let mut danger_path: Vec<Point> = vec!();
+                    for item in predators.clone() {
+                        let point = pieces.locations.get(item).unwrap();
+                        let pred_loc = squares.points.iter().position(|p| p.x == point.x && p.y == point.y);
+                        match pred_loc {
+                            Some(_) => {
+                                debug!("FOUND PREDATOR");
+                                let mut check = false;
+
+                                // Sets path to KING as green as well
+                                match pieces.types.get(item).unwrap() {
+                                    Type::Bishop => {
+                                        let mut x_clone = point.x;
+                                        let mut y_clone = point.y;
+                                        while !check {
+                                            // North-East
+                                            while x_clone < 7 && y_clone > 0 {
+                                                match pieces.check_by_point(y_clone-1, x_clone+1) {
+                                                    Some(loc) => {
+                                                        if pieces.types.get(loc).unwrap() == &Type::King {
+                                                            debug!("King found!");
+                                                            check = true;
+                                                            danger_path.push(Point{x: x_clone, y: y_clone});
+                                                           // color the points 
+                                                        }
+                                                        break;
+                                                    },
+                                                    None => danger_path.push(Point{x: x_clone, y: y_clone}),
+                                                }
+                                                y_clone-=1;
+                                                x_clone+=1;
+                                            }
+                                        }
+                                    },
+
+                                    _ => {}
+                                }
+                            },
+                            None => {
+                                error!("CANNOT FIND PREDATOR");
+                            }
+                        }
+                    }
+
+
+                        renderer.render_as_pred(&squares, &danger_path);
+                        let _ = renderer.render_pieces(&squares, &pieces);
                     for event in events.poll_iter() {
                         match event {
-                            Event::Quit { .. } | Event::KeyDown {
+                        Event::Quit { .. } | Event::KeyDown {
                                 keycode: Some(Keycode::Escape),
                                 ..
                             } => break 'running,
 
-                            Event::MouseButtonDown {x, y, ..} => {
-                                println!("WORKED WOOOOOOOOOOOOOOOOOOOO")
-                            }
-                            _ => {}
+                        Event::MouseButtonDown {x, y, ..} => {
+                            let _clicked = Point{x: (x/(SCREEN_WIDTH/8) as i32) as u32, y: (y/(SCREEN_HEIGHT/8) as i32) as u32};
+                            let _allowed = false;
 
+                            // Find the path from pred -> king 
+                        
+                                    // Mask the path (hashset) to king
+                                // Allow for only moves onto the mask or for King to move onto a
+                                // different path
+
+                            }
+                                _ => {}
+
+                            }
                         }
-                    }
-                }
-            },
+                },
 
             State::Play => {
                 for event in events.poll_iter() {
@@ -762,7 +801,7 @@ fn main() -> Result<(), String> {
                             let clicked = Point{x: (x/(SCREEN_WIDTH/8) as i32) as u32, y: (y/(SCREEN_HEIGHT/8) as i32) as u32};
                             if first_click {
                                 // Gets piece that's clicked on
-                                //debug!("FIRST CLICK");
+                                debug!("FIRST CLICK");
                                 //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
 
                                 // Ensures it exists
@@ -774,7 +813,7 @@ fn main() -> Result<(), String> {
 
                                 // Renders moves for selected piece
                                 debug!("This piece is: {:?}", selected_type);
-                                if selected_type != Option::None{
+                                if selected_type.is_some(){
                                     let pair = pieces.possible_moves(&squares,loc.unwrap());
                                     valid_moves = pair.0;
                                     valid_kills = pair.1;
@@ -786,7 +825,7 @@ fn main() -> Result<(), String> {
                                 }
                             }
                             else{
-                                //debug!("SECOND CLICK");
+                                debug!("SECOND CLICK");
                                 //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
                                 pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
                                 renderer.render_board()?;
