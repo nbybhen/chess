@@ -5,32 +5,34 @@ extern crate log;
 
 use log::debug;
 use sdl2::event::Event;
+use sdl2::image::{InitFlag, LoadTexture};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use std::time::Duration;
 use sdl2::rect::Rect;
 use sdl2::render::*;
 use std::path::Path;
-use sdl2::image::{InitFlag, LoadTexture};
+use std::time::Duration;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-enum State {Paused, Play, Check}
+enum State {
+    Paused,
+    Play,
+    Check,
+}
 
-impl State{
-    fn change_state(self, squares: &Squares, pieces: &mut Pieces) -> Result<(State, Vec<usize>), String>{
+impl State {
+    fn change_state(self, squares: &Squares, pieces: &mut Pieces) -> Result<(State, Vec<usize>), String> {
         let piece_count = pieces.locations.len();
 
-        let white_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King
-            && pieces.colors.get(i).unwrap() == &PieceColor::White).unwrap();
+        let white_king_loc = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King && pieces.colors.get(i).unwrap() == &PieceColor::White).unwrap();
 
-        let mut predators_locs: Vec<usize> = vec!();
+        let mut predators_locs: Vec<usize> = vec![];
         let mut make_check = false;
 
-
-        for index in 0..piece_count{
+        for index in 0..piece_count {
             let grouped = pieces.possible_moves(squares, index);
             //let moves = grouped.0;
             let kills = grouped.1;
@@ -45,31 +47,49 @@ impl State{
         }
         if make_check {
             Ok((State::Check, predators_locs))
-        }
-        else {
+        } else {
             Ok((State::Play, predators_locs))
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct Point {x: u32, y: u32}
+struct Point {
+    x: u32,
+    y: u32,
+}
 
 #[derive(PartialEq, Clone)]
-enum PieceColor{ Black, White }
+enum PieceColor {
+    Black,
+    White,
+}
 
 #[derive(Debug, PartialEq)]
-enum Type {Pawn, Rook, Bishop, Queen, Knight, King}
+enum Type {
+    Pawn,
+    Rook,
+    Bishop,
+    Queen,
+    Knight,
+    King,
+}
 
-struct Squares {squares: Vec<Rect>, points: Vec<Point>}
+struct Squares {
+    squares: Vec<Rect>,
+    points: Vec<Point>,
+}
 
-impl Squares{
-    fn create(mut self) -> Result<Self, String>{
-        let width: u32 = SCREEN_WIDTH/8;
-        let height: u32 = SCREEN_HEIGHT/8;
-        for index in 0..64{
-            self.squares.push(Rect::new((width*(index % 8)) as i32, (height*(index / 8)) as i32, width, height));
-            self.points.push(Point{x: (width*(index % 8))/(SCREEN_WIDTH/8), y: (height*(index / 8))/(SCREEN_HEIGHT/8)});
+impl Squares {
+    fn create(mut self) -> Result<Self, String> {
+        let width: u32 = SCREEN_WIDTH / 8;
+        let height: u32 = SCREEN_HEIGHT / 8;
+        for index in 0..64 {
+            self.squares.push(Rect::new((width * (index % 8)) as i32, (height * (index / 8)) as i32, width, height));
+            self.points.push(Point {
+                x: (width * (index % 8)) / (SCREEN_WIDTH / 8),
+                y: (height * (index / 8)) / (SCREEN_HEIGHT / 8),
+            });
         }
         Ok(self)
     }
@@ -78,28 +98,30 @@ struct Pieces {
     locations: Vec<Point>,
     colors: Vec<PieceColor>,
     types: Vec<Type>,
-    first_move: Vec<bool>
+    first_move: Vec<bool>,
 }
-impl Pieces{
-    fn create(mut self) -> Result<Self, String>{
+impl Pieces {
+    fn create(mut self) -> Result<Self, String> {
         debug!("CREATING PIECES");
         let mut start_point: Point = Point { x: 0, y: 0 };
         // Renders all beginning piece locations
-        for i in 0..4{
-            for j in 0..8{
+        for i in 0..4 {
+            for j in 0..8 {
                 start_point.x = j;
-                match i{
+                match i {
                     0 => {
                         start_point.y = 0;
 
                         //debug!("RUNNING {j}");
-                        match j{
+                        match j {
                             0 | 7 => self.types.push(Type::Rook),
                             1 | 6 => self.types.push(Type::Knight),
                             2 | 5 => self.types.push(Type::Bishop),
                             3 => self.types.push(Type::King),
                             4 => self.types.push(Type::Queen),
-                            _ => {error!("UNKNOWN")}
+                            _ => {
+                                error!("UNKNOWN")
+                            }
                         }
 
                         self.locations.push(start_point);
@@ -123,7 +145,7 @@ impl Pieces{
                     3 => {
                         start_point.y = 7;
 
-                        match j{
+                        match j {
                             0 | 7 => self.types.push(Type::Rook),
                             1 | 6 => self.types.push(Type::Knight),
                             2 | 5 => self.types.push(Type::Bishop),
@@ -144,120 +166,125 @@ impl Pieces{
     }
 
     // Checks if inputted coordinates contain a piece on the board and returns the location
-    fn check_by_point(&self, point_y: u32, point_x: u32) -> Option<usize>{
+    fn check_by_point(&self, point_y: u32, point_x: u32) -> Option<usize> {
         self.locations.iter().position(|x| x.x == point_x && x.y == point_y)
     }
 
     // Checks Pieces vectors to ensure either:
     // 1. Point is "open" to move (empty / taken by same color)
     // 2. Point contains piece of opposite color
-    fn valid_moves(&mut self, color: &PieceColor, pos_loc: &mut Vec<Point>, pos_kills: &mut Vec<Point>, y: u32, x: u32) -> bool{
-        match self.check_by_point(y, x){
+    fn valid_moves(&mut self, color: &PieceColor, pos_loc: &mut Vec<Point>, pos_kills: &mut Vec<Point>, y: u32, x: u32) -> bool {
+        match self.check_by_point(y, x) {
             Some(loc) => {
-                if self.colors[loc] != *color{
-                    pos_kills.push(Point{y, x});
+                if self.colors[loc] != *color {
+                    pos_kills.push(Point { y, x });
                 }
                 true
-            },
+            }
             None => {
-                pos_loc.push(Point{y, x});
+                pos_loc.push(Point { y, x });
                 false
             }
         }
     }
 
-    fn possible_moves(&mut self, _squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>){
-        let mut possible_locations: Vec<Point> = vec!();
-        let mut possible_kills: Vec<Point> = vec!();
+    fn possible_moves(&mut self, _squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>) {
+        let mut possible_locations: Vec<Point> = vec![];
+        let mut possible_kills: Vec<Point> = vec![];
         let piece_type = self.types.get(piece_loc).unwrap();
         let piece_point = self.locations[piece_loc];
         let piece_color = self.colors[piece_loc].clone();
         let piece_first_perms = self.first_move.get(piece_loc).unwrap();
 
-        match piece_type{
+        match piece_type {
             Type::Pawn => {
-                match piece_color{
+                match piece_color {
                     PieceColor::Black => {
                         // Ensures "first move" gets two possible spaces
-                        if *piece_first_perms && self.check_by_point(piece_point.y-1, piece_point.x).is_none(){
-                            possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
-                            if self.check_by_point(piece_point.y-2, piece_point.x).is_none(){
-                                possible_locations.push(Point{y: piece_point.y-2, x: piece_point.x});
+                        if *piece_first_perms && self.check_by_point(piece_point.y - 1, piece_point.x).is_none() {
+                            possible_locations.push(Point { y: piece_point.y - 1, x: piece_point.x });
+                            if self.check_by_point(piece_point.y - 2, piece_point.x).is_none() {
+                                possible_locations.push(Point { y: piece_point.y - 2, x: piece_point.x });
                             }
-                        }
-                        else{
-                            if piece_point.y != 0 && self.check_by_point(piece_point.y-1, piece_point.x).is_none(){
-                                possible_locations.push(Point{y: piece_point.y-1, x: piece_point.x});
+                        } else {
+                            if piece_point.y != 0 && self.check_by_point(piece_point.y - 1, piece_point.x).is_none() {
+                                possible_locations.push(Point { y: piece_point.y - 1, x: piece_point.x });
                             }
 
                             if piece_point.y != 0 {
                                 // Left kill
-                                match self.check_by_point(piece_point.y-1, piece_point.x-1){
+                                match self.check_by_point(piece_point.y - 1, piece_point.x - 1) {
                                     Some(loc) => {
                                         if piece_color != self.colors[loc] {
-                                            possible_kills.push(Point{y:piece_point.y-1, x:piece_point.x-1})
+                                            possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x - 1 })
                                         }
                                     }
                                     None => {}
                                 }
 
                                 // Right kill
-                                match self.check_by_point(piece_point.y-1, piece_point.x+1){
+                                match self.check_by_point(piece_point.y - 1, piece_point.x + 1) {
                                     Some(loc) => {
                                         if piece_color != self.colors[loc] {
-                                            possible_kills.push(Point{y:piece_point.y-1, x:piece_point.x+1})
+                                            possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x + 1 })
                                         }
                                     }
                                     None => {}
-
                                 }
                             }
                         }
                     }
                     PieceColor::White => {
-                        if *piece_first_perms && self.check_by_point(piece_point.y+1, piece_point.x).is_none(){
-                            possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
-                            if self.check_by_point(piece_point.y+2, piece_point.x).is_none(){
-                                possible_locations.push(Point{y: piece_point.y+2, x: piece_point.x});
+                        if *piece_first_perms && self.check_by_point(piece_point.y + 1, piece_point.x).is_none() {
+                            possible_locations.push(Point { y: piece_point.y + 1, x: piece_point.x });
+                            if self.check_by_point(piece_point.y + 2, piece_point.x).is_none() {
+                                possible_locations.push(Point { y: piece_point.y + 2, x: piece_point.x });
                             }
-                        }
-                        else if piece_point.y != 0 && self.check_by_point(piece_point.y+1, piece_point.x).is_none(){
-                            possible_locations.push(Point{y: piece_point.y+1, x: piece_point.x});
+                        } else if piece_point.y != 0 && self.check_by_point(piece_point.y + 1, piece_point.x).is_none() {
+                            possible_locations.push(Point { y: piece_point.y + 1, x: piece_point.x });
                         }
                     }
                 }
                 //debug!("LOADING POSSIBLE PAWN MOVES: {:?}", possible_locations);
             }
             Type::Rook => {
-               // North
-                for index in (0..piece_point.y).rev(){
+                // North
+                for index in (0..piece_point.y).rev() {
                     // Ensures there is no piece in the way for valid_moves
-                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x){
-                        true => {break;}
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x) {
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
 
                 // South
-                for index in piece_point.y+1..=7 {
-                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x){
-                        true => {break;}
+                for index in piece_point.y + 1..=7 {
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x) {
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
 
                 // East
-                for index in piece_point.x+1..=7 {
-                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index){
-                        true => {break;}
+                for index in piece_point.x + 1..=7 {
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index) {
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
 
                 // West
-                for index in (0..piece_point.x).rev(){
-                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index){
-                        true => {break;}
+                for index in (0..piece_point.x).rev() {
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index) {
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
@@ -272,7 +299,9 @@ impl Pieces{
                     y_clone -= 1;
 
                     match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
-                        true => { break; },
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
@@ -282,24 +311,28 @@ impl Pieces{
                 x_clone = piece_point.x;
 
                 while x_clone < 7 && y_clone > 0 {
-                    x_clone+=1;
-                    y_clone -=1;
+                    x_clone += 1;
+                    y_clone -= 1;
 
-                  match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
-                      true => { break; },
-                      false => {}
-                  }
-              }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                        true => {
+                            break;
+                        }
+                        false => {}
+                    }
+                }
                 // South-east
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
 
                 while x_clone < 7 && y_clone < 7 {
-                    x_clone+=1;
-                    y_clone +=1;
+                    x_clone += 1;
+                    y_clone += 1;
 
                     match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
-                        true => { break; },
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
@@ -309,15 +342,17 @@ impl Pieces{
                 x_clone = piece_point.x;
 
                 while x_clone > 0 && y_clone < 7 {
-                    x_clone-=1;
-                    y_clone +=1;
+                    x_clone -= 1;
+                    y_clone += 1;
 
                     match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
-                        true => { break; },
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
-        }
+            }
             Type::Queen => {
                 // Bishop abilities
                 // North-west
@@ -329,7 +364,9 @@ impl Pieces{
                     y_clone -= 1;
 
                     match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
-                        true => { break; },
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
@@ -339,24 +376,28 @@ impl Pieces{
                 x_clone = piece_point.x;
 
                 while x_clone < 7 && y_clone > 0 {
-                    x_clone+=1;
-                    y_clone -=1;
+                    x_clone += 1;
+                    y_clone -= 1;
 
-                  match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
-                      true => { break; },
-                      false => {}
-                  }
-              }
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
+                        true => {
+                            break;
+                        }
+                        false => {}
+                    }
+                }
                 // South-east
                 y_clone = piece_point.y;
                 x_clone = piece_point.x;
 
                 while x_clone < 7 && y_clone < 7 {
-                    x_clone+=1;
-                    y_clone +=1;
+                    x_clone += 1;
+                    y_clone += 1;
 
                     match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
-                        true => { break; },
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
@@ -366,142 +407,147 @@ impl Pieces{
                 x_clone = piece_point.x;
 
                 while x_clone > 0 && y_clone < 7 {
-                    x_clone-=1;
-                    y_clone +=1;
+                    x_clone -= 1;
+                    y_clone += 1;
 
                     match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, y_clone, x_clone) {
-                        true => { break; },
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
 
                 // ROOK
                 // North
-                for index in (0..piece_point.y).rev(){
+                for index in (0..piece_point.y).rev() {
                     // Ensures there is no piece in the way for valid_moves
-                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x){
-                        true => {break;}
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x) {
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
 
                 // South
-                for index in piece_point.y+1..=7 {
-                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x){
-                        true => {break;}
+                for index in piece_point.y + 1..=7 {
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, index, piece_point.x) {
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
 
                 // East
-                for index in piece_point.x+1..=7 {
-                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index){
-                        true => {break;}
+                for index in piece_point.x + 1..=7 {
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index) {
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
 
                 // West
-                for index in (0..piece_point.x).rev(){
-                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index){
-                        true => {break;}
+                for index in (0..piece_point.x).rev() {
+                    match self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, index) {
+                        true => {
+                            break;
+                        }
                         false => {}
                     }
                 }
-
             }
             Type::Knight => {
                 // Above
-                if piece_point.y > 1{
-
+                if piece_point.y > 1 {
                     // Upper left
                     if piece_point.x > 0 {
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-2, piece_point.x-1);
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 2, piece_point.x - 1);
                     }
 
                     // Upper right
-                    if piece_point.x < 7{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-2, piece_point.x+1);
+                    if piece_point.x < 7 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 2, piece_point.x + 1);
                     }
                 }
 
                 // Below
-                if piece_point.y < 6{
+                if piece_point.y < 6 {
                     // Lower left
-                    if piece_point.x > 0{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+2, piece_point.x-1);
+                    if piece_point.x > 0 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y + 2, piece_point.x - 1);
                     }
 
                     // Lower right
-                    if piece_point.x < 7{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+2, piece_point.x+1);
+                    if piece_point.x < 7 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y + 2, piece_point.x + 1);
                     }
                 }
 
                 // Left
-                if piece_point.x > 1{
+                if piece_point.x > 1 {
                     // Upper left
                     if piece_point.y > 0 {
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x-2);
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 1, piece_point.x - 2);
                     }
                     // Lower left
-                    if piece_point.y < 7{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x-2);
+                    if piece_point.y < 7 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y + 1, piece_point.x - 2);
                     }
                 }
 
                 // Right
-                if piece_point.x < 6{
+                if piece_point.x < 6 {
                     // Upper right
-                    if piece_point.y > 0{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x+2);
+                    if piece_point.y > 0 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 1, piece_point.x + 2);
                     }
                     // Lower right
-                    if piece_point.y < 7{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x+2);
+                    if piece_point.y < 7 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y + 1, piece_point.x + 2);
                     }
                 }
             }
             Type::King => {
-              // Top
-                if piece_point.y > 0{
+                // Top
+                if piece_point.y > 0 {
                     // Above
-                    self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x);
+                    self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 1, piece_point.x);
 
-                    if piece_point.x > 0{
+                    if piece_point.x > 0 {
                         // North-west
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x-1);
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 1, piece_point.x - 1);
 
                         // LEFT
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x-1);
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x - 1);
                     }
 
-
-                    if piece_point.x < 7{
+                    if piece_point.x < 7 {
                         // North-east
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y-1, piece_point.x+1);
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 1, piece_point.x + 1);
 
                         // Right
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x+1);
-
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x + 1);
                     }
                 }
 
                 // Bottom
-                if piece_point.y < 7{
+                if piece_point.y < 7 {
                     // Backwards
-                    self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x);
+                    self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y + 1, piece_point.x);
 
                     // South-west
-                    if piece_point.x > 0{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x-1);
+                    if piece_point.x > 0 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y + 1, piece_point.x - 1);
                     }
 
                     // South-east
-                    if piece_point.x < 7{
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y+1, piece_point.x+1);
+                    if piece_point.x < 7 {
+                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y + 1, piece_point.x + 1);
                     }
-
                 }
             }
         }
@@ -509,15 +555,14 @@ impl Pieces{
     }
 
     // first_click = piece being moved
-    fn move_piece(&mut self, valid_moves: &Vec<Point>, valid_kills: &Vec<Point>, first_click: usize, point: &Point) -> Result<(), String>{
+    fn move_piece(&mut self, valid_moves: &Vec<Point>, valid_kills: &Vec<Point>, first_click: usize, point: &Point) -> Result<(), String> {
         // Ensures piece isn't double-clicked
         if self.locations.get(first_click).unwrap() != point {
             if valid_moves.iter().any(|x| x == point) {
                 debug!("MOVING PIECE");
                 self.locations[first_click] = *point;
                 self.first_move[first_click] = false;
-            }
-            else if valid_kills.iter().any(|x| x == point) {
+            } else if valid_kills.iter().any(|x| x == point) {
                 debug!("KILLING PIECE");
                 self.locations[first_click] = *point;
                 self.first_move[first_click] = false;
@@ -536,28 +581,30 @@ impl Pieces{
     }
 }
 
-struct Renderer {canvas: WindowCanvas}
-impl Renderer{
+struct Renderer {
+    canvas: WindowCanvas,
+}
+impl Renderer {
     // Initializes renderer
-    fn new(win: sdl2::video::Window) -> Result<Renderer, String>{
+    fn new(win: sdl2::video::Window) -> Result<Renderer, String> {
         let canvas = win.into_canvas().build().map_err(|e| e.to_string())?;
-        Ok(Renderer{canvas})
+        Ok(Renderer { canvas })
     }
 
     // Creates board tiles and renders them
-    fn render_board(&mut self) -> Result<(), String>{
+    fn render_board(&mut self) -> Result<(), String> {
         self.canvas.set_draw_color(Color::RGB(172, 113, 57));
         self.canvas.clear();
 
-        for row in 0..8{
-            for column in 0..8{
-                if row%2 == 0 && column%2 == 0{
+        for row in 0..8 {
+            for column in 0..8 {
+                if row % 2 == 0 && column % 2 == 0 {
                     self.canvas.set_draw_color(Color::RGB(230, 204, 179));
-                    self.canvas.fill_rect(Rect::new((column * (SCREEN_HEIGHT / 8)) as i32, (row * (SCREEN_WIDTH / 8)) as i32, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
+                    self.canvas.fill_rect(Rect::new((column * (SCREEN_HEIGHT / 8)) as i32, (row * (SCREEN_WIDTH / 8)) as i32, SCREEN_WIDTH / 8, SCREEN_HEIGHT / 8))?;
                 }
-                if row%2 == 1 && column%2 == 1{
+                if row % 2 == 1 && column % 2 == 1 {
                     self.canvas.set_draw_color(Color::RGB(230, 204, 179));
-                    self.canvas.fill_rect(Rect::new((column * (SCREEN_HEIGHT / 8)) as i32, (row * (SCREEN_WIDTH / 8)) as i32, SCREEN_WIDTH/8, SCREEN_HEIGHT/8))?;
+                    self.canvas.fill_rect(Rect::new((column * (SCREEN_HEIGHT / 8)) as i32, (row * (SCREEN_WIDTH / 8)) as i32, SCREEN_WIDTH / 8, SCREEN_HEIGHT / 8))?;
                 }
             }
         }
@@ -566,53 +613,48 @@ impl Renderer{
     }
 
     // Renders pieces onto board tiles
-    fn render_pieces(&mut self, squares: &Squares, pieces: &Pieces) -> Result<(), String>{
+    fn render_pieces(&mut self, squares: &Squares, pieces: &Pieces) -> Result<(), String> {
         let texture_creator = self.canvas.texture_creator();
         //debug!("Len of list: {:}", pieces.types.len());
-        for index in 0..pieces.types.len(){
+        for index in 0..pieces.types.len() {
             let place = pieces.locations.get(index).unwrap();
 
-            match pieces.types.get(index).unwrap(){
+            match pieces.types.get(index).unwrap() {
                 Type::Pawn => {
                     //debug!("Pawn: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Pawn.png")} else {Path::new("sprites/WhitePawn.png")};
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Pawn.png") } else { Path::new("sprites/WhitePawn.png") };
                     let texture = texture_creator.load_texture(png)?;
-                    self.canvas.copy(&texture, None,
-                                     *squares.squares.get((place.y*8+place.x) as usize).unwrap())?;
+                    self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap())?;
                 }
                 Type::Rook => {
                     //debug!("Rook: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Rook.png")} else {Path::new("sprites/WhiteRook.png")};
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Rook.png") } else { Path::new("sprites/WhiteRook.png") };
                     let texture = texture_creator.load_texture(png)?;
-                    self.canvas.copy(&texture, None,
-                                      *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
+                    self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::Bishop => {
                     //debug!("Bishop: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Bishop.png")} else {Path::new("sprites/WhiteBishop.png")};
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Bishop.png") } else { Path::new("sprites/WhiteBishop.png") };
                     let texture = texture_creator.load_texture(png)?;
-                    self.canvas.copy(&texture, None, *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER BISHOP");
+                    self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER BISHOP");
                 }
                 Type::Queen => {
                     //debug!("Rook: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Queen.png")} else {Path::new("sprites/WhiteQueen.png")};
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Queen.png") } else { Path::new("sprites/WhiteQueen.png") };
                     let texture = texture_creator.load_texture(png)?;
-                    self.canvas.copy(&texture, None,
-                                     *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
+                    self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::Knight => {
                     //debug!("Knight: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/Knight.png")} else {Path::new("sprites/WhiteKnight.png")};
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Knight.png") } else { Path::new("sprites/WhiteKnight.png") };
                     let texture = texture_creator.load_texture(png)?;
-                    self.canvas.copy(&texture, None,
-                                     *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
+                    self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::King => {
                     //debug!("King: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black {Path::new("sprites/King.png")} else {Path::new("sprites/WhiteKing.png")};
+                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/King.png") } else { Path::new("sprites/WhiteKing.png") };
                     let texture = texture_creator.load_texture(png)?;
-                    self.canvas.copy(&texture, None,
-                                     *squares.squares.get((place.y*8 + place.x) as usize).unwrap()).expect("COULDNT RENDER KING");
+                    self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER KING");
                 }
             }
         }
@@ -620,27 +662,27 @@ impl Renderer{
         Ok(())
     }
 
-    fn render_selected(&mut self, square: &Squares, pieces: &Pieces, loc: usize) -> Result<(), String>{
+    fn render_selected(&mut self, square: &Squares, pieces: &Pieces, loc: usize) -> Result<(), String> {
         debug!("RENDERING SELECTED SQUARE");
         self.canvas.set_draw_color(Color::RGB(179, 204, 255));
         let point = pieces.locations.get(loc).expect("CANNOT FIND PIECE LOCATION");
-        let _ = self.canvas.fill_rect(*square.squares.get((point.y*8+point.x) as usize).unwrap());
+        let _ = self.canvas.fill_rect(*square.squares.get((point.y * 8 + point.x) as usize).unwrap());
         Ok(())
     }
 
     // Renders possible moves based on piece
-    fn render_moves(&mut self, squares: &Squares, possible_moves: &Vec<Point>) -> Result<(), String>{
+    fn render_moves(&mut self, squares: &Squares, possible_moves: &Vec<Point>) -> Result<(), String> {
         debug!("RENDERING MOVES");
         //debug!("SQUARES: {:?}", squares.points);
         self.canvas.set_draw_color(Color::RGB(255, 235, 153));
-        for item in possible_moves{
+        for item in possible_moves {
             let loc = squares.points.iter().position(|p| p == item);
-            match loc{
+            match loc {
                 Some(p) => {
                     //debug!("Item: {item:?}");
                     debug!("AT POINT: {:?}", p);
                     self.canvas.fill_rect(*squares.squares.get(p).unwrap())?;
-                },
+                }
                 None => {
                     error!("POINT NOT FOUND: {:?}", *item);
                 }
@@ -649,16 +691,16 @@ impl Renderer{
         Ok(())
     }
 
-    fn render_kills(&mut self, squares: &Squares,   possible_kills: &Vec<Point>) -> Result<(), String>{
+    fn render_kills(&mut self, squares: &Squares, possible_kills: &Vec<Point>) -> Result<(), String> {
         debug!("RENDERING KILLS");
         self.canvas.set_draw_color(Color::RGB(255, 51, 51));
-        for item in possible_kills{
+        for item in possible_kills {
             let loc = squares.points.iter().position(|p| p.x == item.x && p.y == item.y);
-            match loc{
+            match loc {
                 Some(x) => {
                     debug!("KILL AT POINT: {:?}", x);
                     self.canvas.fill_rect(*squares.squares.get(x).unwrap())?;
-                },
+                }
                 None => {
                     error!("KILL POINT NOT FOUND");
                 }
@@ -671,8 +713,8 @@ impl Renderer{
         // Sets predators to green
         self.canvas.set_draw_color(Color::RGB(75, 200, 10));
         for point in path.clone() {
-            self.canvas.fill_rect(*squares.squares.get((point.y*8+point.x) as usize).unwrap()).unwrap();
-        }            
+            self.canvas.fill_rect(*squares.squares.get((point.y * 8 + point.x) as usize).unwrap()).unwrap();
+        }
     }
 }
 
@@ -684,19 +726,15 @@ fn main() -> Result<(), String> {
     // Initializes the logger
     env_logger::init();
 
-
     // Creates Window
-    let win = video_subsystem.window("CHESS", SCREEN_WIDTH, SCREEN_HEIGHT)
-        .position_centered()
-        .build()
-        .map_err(|e| e.to_string())?;
+    let win = video_subsystem.window("CHESS", SCREEN_WIDTH, SCREEN_HEIGHT).position_centered().build().map_err(|e| e.to_string())?;
 
     // Creates Renderer struct for handling canvas renders
     let mut renderer = Renderer::new(win)?;
 
     // Creates vector for board squares
-    let squares: Squares = Squares{squares: vec![], points: vec![]}.create().unwrap();
-    let mut pieces: Pieces = Pieces{locations: vec![], colors: vec![], types: vec![], first_move: vec![]}.create().unwrap();
+    let squares: Squares = Squares { squares: vec![], points: vec![] }.create().unwrap();
+    let mut pieces: Pieces = Pieces { locations: vec![], colors: vec![], types: vec![], first_move: vec![] }.create().unwrap();
 
     // Creates Event Loop
     let mut events = sdl_context.event_pump()?;
@@ -704,101 +742,96 @@ fn main() -> Result<(), String> {
     let _ = renderer.render_board();
     let _ = renderer.render_pieces(&squares, &pieces);
 
-
     // Presets variables (mutable)
     let mut first_click: bool = true;
     let mut loc: Option<usize> = Default::default();
-    let mut valid_moves: Vec<Point> = vec!();
-    let mut valid_kills: Vec<Point> = vec!();
+    let mut valid_moves: Vec<Point> = vec![];
+    let mut valid_kills: Vec<Point> = vec![];
     let mut state: State = State::Play;
-    let mut predators: Vec<usize> = vec!();
-
+    let mut predators: Vec<usize> = vec![];
 
     // Event Loop
     'running: loop {
         match state {
             // Checks if it is in CHECK
             State::Check => {
-                    let mut danger_path: Vec<Point> = vec!();
-                    for item in predators.clone() {
-                        let point = pieces.locations.get(item).unwrap();
-                        let pred_loc = squares.points.iter().position(|p| p.x == point.x && p.y == point.y);
-                        match pred_loc {
-                            Some(_) => {
-                                debug!("FOUND PREDATOR");
-                                let mut check = false;
+                let mut danger_path: Vec<Point> = vec![];
+                for item in predators.clone() {
+                    let point = pieces.locations.get(item).unwrap();
+                    let pred_loc = squares.points.iter().position(|p| p.x == point.x && p.y == point.y);
+                    match pred_loc {
+                        Some(_) => {
+                            debug!("FOUND PREDATOR");
+                            let mut check = false;
 
-                                // Sets path to KING as green as well
-                                match pieces.types.get(item).unwrap() {
-                                    Type::Bishop => {
-                                        let mut x_clone = point.x;
-                                        let mut y_clone = point.y;
-                                        while !check {
-                                            // North-East
-                                            while x_clone < 7 && y_clone > 0 {
-                                                match pieces.check_by_point(y_clone-1, x_clone+1) {
-                                                    Some(loc) => {
-                                                        if pieces.types.get(loc).unwrap() == &Type::King {
-                                                            debug!("King found!");
-                                                            check = true;
-                                                            danger_path.push(Point{x: x_clone, y: y_clone});
-                                                           // color the points 
-                                                        }
-                                                        break;
-                                                    },
-                                                    None => danger_path.push(Point{x: x_clone, y: y_clone}),
+                            // Sets path to KING as green as well
+                            match pieces.types.get(item).unwrap() {
+                                Type::Bishop => {
+                                    let mut x_clone = point.x;
+                                    let mut y_clone = point.y;
+                                    while !check {
+                                        // North-East
+                                        while x_clone < 7 && y_clone > 0 {
+                                            match pieces.check_by_point(y_clone - 1, x_clone + 1) {
+                                                Some(loc) => {
+                                                    if pieces.types.get(loc).unwrap() == &Type::King {
+                                                        debug!("King found!");
+                                                        check = true;
+                                                        danger_path.push(Point { x: x_clone, y: y_clone });
+                                                        // color the points
+                                                    }
+                                                    break;
                                                 }
-                                                y_clone-=1;
-                                                x_clone+=1;
+                                                None => danger_path.push(Point { x: x_clone, y: y_clone }),
                                             }
+                                            y_clone -= 1;
+                                            x_clone += 1;
                                         }
-                                    },
-
-                                    _ => {}
+                                    }
                                 }
-                            },
-                            None => {
-                                error!("CANNOT FIND PREDATOR");
+
+                                _ => {}
                             }
+                        }
+                        None => {
+                            error!("CANNOT FIND PREDATOR");
                         }
                     }
+                }
 
+                renderer.render_as_pred(&squares, &danger_path);
+                let _ = renderer.render_pieces(&squares, &pieces);
+                for event in events.poll_iter() {
+                    match event {
+                        Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
 
-                        renderer.render_as_pred(&squares, &danger_path);
-                        let _ = renderer.render_pieces(&squares, &pieces);
-                    for event in events.poll_iter() {
-                        match event {
-                        Event::Quit { .. } | Event::KeyDown {
-                                keycode: Some(Keycode::Escape),
-                                ..
-                            } => break 'running,
-
-                        Event::MouseButtonDown {x, y, ..} => {
-                            let _clicked = Point{x: (x/(SCREEN_WIDTH/8) as i32) as u32, y: (y/(SCREEN_HEIGHT/8) as i32) as u32};
+                        Event::MouseButtonDown { x, y, .. } => {
+                            let _clicked = Point {
+                                x: (x / (SCREEN_WIDTH / 8) as i32) as u32,
+                                y: (y / (SCREEN_HEIGHT / 8) as i32) as u32,
+                            };
                             let _allowed = false;
 
-                            // Find the path from pred -> king 
-                        
-                                    // Mask the path (hashset) to king
-                                // Allow for only moves onto the mask or for King to move onto a
-                                // different path
+                            // Find the path from pred -> king
 
-                            }
-                                _ => {}
-
-                            }
+                            // Mask the path (hashset) to king
+                            // Allow for only moves onto the mask or for King to move onto a
+                            // different path
                         }
-                },
+                        _ => {}
+                    }
+                }
+            }
 
             State::Play => {
                 for event in events.poll_iter() {
                     match event {
-                        Event::Quit { .. } | Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
-                            ..
-                        } => break 'running,
-                        Event::MouseButtonDown {x, y, ..} => {
-                            let clicked = Point{x: (x/(SCREEN_WIDTH/8) as i32) as u32, y: (y/(SCREEN_HEIGHT/8) as i32) as u32};
+                        Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
+                        Event::MouseButtonDown { x, y, .. } => {
+                            let clicked = Point {
+                                x: (x / (SCREEN_WIDTH / 8) as i32) as u32,
+                                y: (y / (SCREEN_HEIGHT / 8) as i32) as u32,
+                            };
                             if first_click {
                                 // Gets piece that's clicked on
                                 debug!("FIRST CLICK");
@@ -806,15 +839,15 @@ fn main() -> Result<(), String> {
 
                                 // Ensures it exists
                                 loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
-                                let selected_type = match loc{
+                                let selected_type = match loc {
                                     Some(x) => pieces.types.get(x),
-                                    None => Option::None
+                                    None => Option::None,
                                 };
 
                                 // Renders moves for selected piece
                                 debug!("This piece is: {:?}", selected_type);
-                                if selected_type.is_some(){
-                                    let pair = pieces.possible_moves(&squares,loc.unwrap());
+                                if selected_type.is_some() {
+                                    let pair = pieces.possible_moves(&squares, loc.unwrap());
                                     valid_moves = pair.0;
                                     valid_kills = pair.1;
                                     renderer.render_selected(&squares, &pieces, loc.unwrap())?;
@@ -823,8 +856,7 @@ fn main() -> Result<(), String> {
                                     renderer.render_pieces(&squares, &pieces)?;
                                     first_click = false;
                                 }
-                            }
-                            else{
+                            } else {
                                 debug!("SECOND CLICK");
                                 //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
                                 pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
@@ -836,13 +868,12 @@ fn main() -> Result<(), String> {
                                 first_click = true;
 
                                 debug!("Current state: {state:?}");
-
                             }
                         }
                         _ => {}
                     }
-                } 
-            } 
+                }
+            }
 
             State::Paused => unreachable!(),
         }
@@ -852,4 +883,3 @@ fn main() -> Result<(), String> {
 
     Ok(())
 }
-
