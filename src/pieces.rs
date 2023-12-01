@@ -508,6 +508,24 @@ impl Pieces {
         }
         Ok(())
     }
+
+    pub fn possible_check_moves(&mut self, squares: &Squares, piece_index: usize, danger_locations: &Vec<Point>) -> Vec<Point> {
+        let hold = self.possible_moves(squares, piece_index);
+        let possible_moves = hold.0;
+        let possible_kills = hold.1;
+        let mut ret: Vec<Point> = vec![];
+
+        // Move that blocks path
+        for pnt in possible_moves {
+            if danger_locations.contains(&pnt) {
+                ret.push(pnt);
+            }
+        }
+
+        debug!("Possible Check Moves: {ret:?}");
+        ret
+
+    } 
 }
 
 

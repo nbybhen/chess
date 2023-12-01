@@ -11,6 +11,8 @@ mod renderer;
 use crate::renderer::Renderer;
 use crate::squares::Squares;
 use crate::state::State;
+
+use crate::pieces::PieceColor;
 use crate::pieces::Pieces;
 use crate::pieces::Type;
 use crate::pieces::Point;
@@ -107,12 +109,12 @@ fn main() -> Result<(), String> {
 
                 renderer.render_as_pred(&squares, &danger_path);
                 let _ = renderer.render_pieces(&squares, &pieces);
-                for event in events.poll_iter() {
+                for event in events.wait_iter() {
                     match event {
                         Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
 
                         Event::MouseButtonDown { x, y, .. } => {
-                            let _clicked = Point {
+                            let clicked = Point {
                                 x: (x / (SCREEN_WIDTH / 8) as i32) as u32,
                                 y: (y / (SCREEN_HEIGHT / 8) as i32) as u32,
                             };
@@ -120,6 +122,37 @@ fn main() -> Result<(), String> {
 
                             // Find the path from pred -> king
 
+                            let white_king_index = pieces.types.iter().enumerate().position(|(i, x)| *x == Type::King && pieces.colors.get(i).unwrap() == &PieceColor::White).unwrap();
+
+                            let white_king_point = pieces.locations.get(white_king_index).unwrap();
+                            if first_click {
+                                // Ensures selected piece exists
+                                loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
+                                let selected_type = match loc {
+                                    Some(x) => pieces.types.get(x),
+                                    None => Option::None,
+                                };
+
+                                // Renders moves for selected piece
+                                debug!("This piece is: {:?}", selected_type);
+                                if selected_type.is_some() {
+                                    // Highlights legal moves for selected piece to remove King from check
+                                    let moves = pieces.possible_check_moves(&squares, loc.unwrap(), &danger_path);
+                                    renderer.render_selected(&squares, &pieces, loc.unwrap())?;
+                                    renderer.render_moves(&squares, &moves)?;
+                                    renderer.render_pieces(&squares, &pieces)?;
+                                    first_click = false;
+                                }
+                                
+                                // Allow for only moves onto the mask or for King to move onto a
+                                // different path
+                            }
+                            else {
+                                println!("SECOND CLICK");
+                                renderer.render_board()?;
+                                renderer.render_pieces(&squares, &pieces)?;
+                                first_click = true;
+                            }
                             // Mask the path (hashset) to king
                             // Allow for only moves onto the mask or for King to move onto a
                             // different path
