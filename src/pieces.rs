@@ -100,7 +100,7 @@ impl Pieces {
     }
 
     // Checks Pieces vectors to ensure either:
-    // 1. Point is "open" to move (empty / taken by same color)
+    // 1. Point is "open" to move (empty vs taken by same color)
     // 2. Point contains piece of opposite color
     pub fn valid_moves(&mut self, color: &PieceColor, pos_loc: &mut Vec<Point>, pos_kills: &mut Vec<Point>, y: u32, x: u32) -> bool {
         match self.check_by_point(y, x) {
@@ -120,6 +120,8 @@ impl Pieces {
     pub fn possible_moves(&mut self, _squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>) {
         let mut possible_locations: Vec<Point> = vec![];
         let mut possible_kills: Vec<Point> = vec![];
+
+        // Data of the selected piece
         let piece_type = self.types.get(piece_loc).unwrap();
         let piece_point = self.locations[piece_loc];
         let piece_color = self.colors[piece_loc].clone();
@@ -480,6 +482,7 @@ impl Pieces {
                 }
             }
         }
+
         (possible_locations, possible_kills)
     }
 

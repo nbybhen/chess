@@ -42,7 +42,7 @@ impl Renderer {
                 }
             }
         }
-        self.canvas.present();
+        //self.canvas.present();
         Ok(())
     }
 
@@ -144,11 +144,14 @@ impl Renderer {
     }
 
     pub fn render_as_pred(&mut self, squares: &Squares, path: &Vec<Point>) {
+        debug!("Setting predators to GREEN");
+        println!("Path: {path:?}");
         // Sets predators to green
         self.canvas.set_draw_color(Color::RGB(75, 200, 10));
         for point in path.clone() {
             self.canvas.fill_rect(*squares.squares.get((point.y * 8 + point.x) as usize).unwrap()).unwrap();
         }
+        //self.render_board();
     }
 }
 
