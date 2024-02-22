@@ -58,6 +58,7 @@ fn main() -> Result<(), String> {
     let mut valid_kills: Vec<Point> = vec![];
     let mut state: State = State::Play;
     let mut predators: Vec<usize> = vec![];
+    let mut turn: PieceColor = PieceColor::Black;
 
     // Event Loop
     'running: loop {
@@ -100,7 +101,7 @@ fn main() -> Result<(), String> {
 
                                 // Renders moves for selected piece
                                 debug!("This piece is: {:?}", selected_type);
-                                if selected_type.is_some() {
+                                if selected_type.is_some() && pieces.colors.get(loc.unwrap()).unwrap() == &turn {
                                     let pair = pieces.possible_moves(&squares, loc.unwrap());
                                     valid_moves = pair.0;
                                     valid_kills = pair.1;
@@ -113,15 +114,33 @@ fn main() -> Result<(), String> {
                                 }
                             } else {
                                 debug!("SECOND CLICK");
-                                //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
-                                pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
-                                renderer.render_board()?;
-                                renderer.render_pieces(&squares, &pieces)?;
-                                let temp = state.change_state(&squares, &mut pieces)?;
-                                state = temp.0;
-                                predators = temp.1;
-                                first_click = true;
 
+                                // Ensures that a change was actually made to the board
+                                match pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked) {
+                                    Ok(val) => {
+                                        if val {
+                                            renderer.render_board()?;
+                                            renderer.render_pieces(&squares, &pieces)?;
+
+                                            // Obtains the new state (based on if any predators
+                                            // exist, as well as the list of predators)
+                                            let temp = state.change_state(&squares, &mut pieces)?;
+                                            state = temp.0;
+                                            predators = temp.1;
+                                            first_click = true;
+
+                                            // Sets the turn for next color
+                                            if turn == PieceColor::Black {
+                                                turn = PieceColor::White;
+                                            }
+                                            else {
+                                                turn = PieceColor::Black;
+                                            }
+                                            
+                                        }
+                                    },
+                                    Err(_) => error!("Could not validate second click.")
+                                }
                                 debug!("Current state: {state:?}");
                             }
                         }

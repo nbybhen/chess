@@ -487,13 +487,15 @@ impl Pieces {
     }
 
     // first_click = piece being moved
-    pub fn move_piece(&mut self, valid_moves: &Vec<Point>, valid_kills: &Vec<Point>, first_click: usize, point: &Point) -> Result<(), String> {
+    pub fn move_piece(&mut self, valid_moves: &Vec<Point>, valid_kills: &Vec<Point>, first_click: usize, point: &Point) -> Result<bool, String> {
+        let mut was_moved: bool = false;
         // Ensures piece isn't double-clicked
         if self.locations.get(first_click).unwrap() != point {
             if valid_moves.iter().any(|x| x == point) {
                 debug!("MOVING PIECE");
                 self.locations[first_click] = *point;
                 self.first_move[first_click] = false;
+                was_moved = true;
             } else if valid_kills.iter().any(|x| x == point) {
                 debug!("KILLING PIECE");
                 self.locations[first_click] = *point;
@@ -507,18 +509,25 @@ impl Pieces {
                 self.colors.remove(dying_piece_loc);
                 self.types.remove(dying_piece_loc);
                 self.first_move.remove(dying_piece_loc);
+                was_moved = true;
             }
         }
-        Ok(())
+        Ok(was_moved)
     }
 
     pub fn possible_check_moves(&mut self, squares: &Squares, piece_index: usize, danger_locations: &Vec<Point>) -> Vec<Point> {
+        let piece_type = self.types.get(piece_index).unwrap();
+
+        // Kings cannot enter danger path
+        if piece_type == &Type::King {
+            return vec![];
+        }
         let hold = self.possible_moves(squares, piece_index);
         let possible_moves = hold.0;
-        let possible_kills = hold.1;
+        let _possible_kills = hold.1;
         let mut ret: Vec<Point> = vec![];
 
-        // Move that blocks path
+        // Move(s) that blocks path
         for pnt in possible_moves {
             if danger_locations.contains(&pnt) {
                 ret.push(pnt);
