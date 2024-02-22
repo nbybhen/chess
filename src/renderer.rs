@@ -1,5 +1,3 @@
-use sdl2::image::LoadTexture;
-
 use crate::pieces::Pieces;
 use crate::pieces::Type;
 use crate::pieces::Point;
@@ -56,38 +54,59 @@ impl Renderer {
             match pieces.types.get(index).unwrap() {
                 Type::Pawn => {
                     //debug!("Pawn: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Pawn.png") } else { Path::new("sprites/WhitePawn.png") };
-                    let texture = texture_creator.load_texture(png)?;
+                    let bmp: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Pawn.bmp") } else { Path::new("sprites/WhitePawn.bmp") };
+
+                    let surface = sdl2::surface::Surface::load_bmp(bmp).unwrap();
+
+                    let texture = surface.as_texture(&texture_creator).unwrap();
                     self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap())?;
                 }
                 Type::Rook => {
-                    //debug!("Rook: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Rook.png") } else { Path::new("sprites/WhiteRook.png") };
-                    let texture = texture_creator.load_texture(png)?;
+                    //debug!("Rook: {:}", place.y*8+place.x); .bmp
+                    let bmp: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Rook.bmp") } else { Path::new("sprites/WhiteRook.bmp") };
+
+                    let surface = sdl2::surface::Surface::load_bmp(bmp).unwrap();
+
+                    let texture = surface.as_texture(&texture_creator).unwrap();
+
                     self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::Bishop => {
                     //debug!("Bishop: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Bishop.png") } else { Path::new("sprites/WhiteBishop.png") };
-                    let texture = texture_creator.load_texture(png)?;
+                    let bmp: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Bishop.bmp") } else { Path::new("sprites/WhiteBishop.bmp") };
+
+                    let surface = sdl2::surface::Surface::load_bmp(bmp).unwrap();
+
+                    let texture = surface.as_texture(&texture_creator).unwrap();
                     self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER BISHOP");
                 }
                 Type::Queen => {
                     //debug!("Rook: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Queen.png") } else { Path::new("sprites/WhiteQueen.png") };
-                    let texture = texture_creator.load_texture(png)?;
+                    let bmp: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Queen.bmp") } else { Path::new("sprites/WhiteQueen.bmp") };
+
+                    let surface = sdl2::surface::Surface::load_bmp(bmp).unwrap();
+
+                    let texture = surface.as_texture(&texture_creator).unwrap();
                     self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::Knight => {
                     //debug!("Knight: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Knight.png") } else { Path::new("sprites/WhiteKnight.png") };
-                    let texture = texture_creator.load_texture(png)?;
+                    let bmp: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/Knight.bmp") } else { Path::new("sprites/WhiteKnight.bmp") };
+
+                    let surface = sdl2::surface::Surface::load_bmp(bmp).unwrap();
+
+                    let texture = surface.as_texture(&texture_creator).unwrap();
+
                     self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER ROOK");
                 }
                 Type::King => {
                     //debug!("King: {:}", place.y*8+place.x);
-                    let png: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/King.png") } else { Path::new("sprites/WhiteKing.png") };
-                    let texture = texture_creator.load_texture(png)?;
+                    let bmp: &Path = if *pieces.colors.get(index).unwrap() == PieceColor::Black { Path::new("sprites/King.bmp") } else { Path::new("sprites/WhiteKing.bmp") };
+
+                    let surface = sdl2::surface::Surface::load_bmp(bmp).unwrap();
+
+                    let texture = surface.as_texture(&texture_creator).unwrap();
+
                     self.canvas.copy(&texture, None, *squares.squares.get((place.y * 8 + place.x) as usize).unwrap()).expect("COULDNT RENDER KING");
                 }
             }

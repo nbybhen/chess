@@ -19,7 +19,6 @@ use crate::pieces::Point;
 
 use log::debug;
 use sdl2::event::Event;
-use sdl2::image::InitFlag;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 
@@ -29,7 +28,6 @@ const SCREEN_HEIGHT: u32 = 800;
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
-    let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
 
     // Initializes the logger
     std::env::set_var("RUST_LOG", "info");
