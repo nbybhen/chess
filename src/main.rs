@@ -116,9 +116,6 @@ fn main() -> Result<(), String> {
                                 pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
                                 renderer.render_board()?;
                                 renderer.render_pieces(&squares, &pieces)?;
-                                //let temp = state.change_state(&squares, &mut pieces)?;
-                                //state = temp.0;
-                                //predators = temp.1;
                                 first_click = true;
 
                                 debug!("Current state: {state:?}");

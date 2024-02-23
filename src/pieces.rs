@@ -451,25 +451,30 @@ impl Pieces {
                 }
             }
             Type::King => {
+
+                // Left
+                if piece_point.x > 0 {
+                    self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x - 1);
+                }
+
+                // Right
+                if piece_point.x < 7 {
+                    self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x + 1);
+                }
+
                 // Top
                 if piece_point.y > 0 {
                     // Above
                     self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 1, piece_point.x);
 
+                    // North-west
                     if piece_point.x > 0 {
-                        // North-west
                         self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 1, piece_point.x - 1);
-
-                        // LEFT
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x - 1);
                     }
 
+                    // North-east
                     if piece_point.x < 7 {
-                        // North-east
                         self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y - 1, piece_point.x + 1);
-
-                        // Right
-                        self.valid_moves(&piece_color, &mut possible_locations, &mut possible_kills, piece_point.y, piece_point.x + 1);
                     }
                 }
 
