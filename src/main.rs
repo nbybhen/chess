@@ -30,7 +30,7 @@ fn main() -> Result<(), String> {
     let video_subsystem = sdl_context.video()?;
 
     // Initializes the logger
-    std::env::set_var("RUST_LOG", "info");
+    std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
 
     // Creates Window
@@ -102,6 +102,7 @@ fn main() -> Result<(), String> {
                                     let pair = pieces.possible_moves(&squares, loc.unwrap());
                                     valid_moves = pair.0;
                                     valid_kills = pair.1;
+                                    debug!("Valid moves: {valid_moves:?}");
                                     renderer.render_board()?;
                                     renderer.render_selected(&squares, &pieces, loc.unwrap())?;
                                     renderer.render_moves(&squares, &valid_moves)?;
@@ -115,9 +116,9 @@ fn main() -> Result<(), String> {
                                 pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
                                 renderer.render_board()?;
                                 renderer.render_pieces(&squares, &pieces)?;
-                                let temp = state.change_state(&squares, &mut pieces)?;
-                                state = temp.0;
-                                predators = temp.1;
+                                //let temp = state.change_state(&squares, &mut pieces)?;
+                                //state = temp.0;
+                                //predators = temp.1;
                                 first_click = true;
 
                                 debug!("Current state: {state:?}");

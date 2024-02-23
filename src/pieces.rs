@@ -127,6 +127,10 @@ impl Pieces {
         let piece_color = self.colors[piece_loc].clone();
         let piece_first_perms = self.first_move.get(piece_loc).unwrap();
 
+        let mut i = 0;
+        println!("Piece point: {piece_point:?}");
+        println!("Piece Type: {piece_type:?}");
+
         match piece_type {
             Type::Pawn => {
                 match piece_color {
@@ -144,23 +148,27 @@ impl Pieces {
 
                             if piece_point.y != 0 {
                                 // Left kill
-                                match self.check_by_point(piece_point.y - 1, piece_point.x - 1) {
-                                    Some(loc) => {
-                                        if piece_color != self.colors[loc] {
-                                            possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x - 1 })
+                                if piece_point.x != 0 {
+                                    match self.check_by_point(piece_point.y - 1, piece_point.x - 1) {
+                                        Some(loc) => {
+                                            if piece_color != self.colors[loc] {
+                                                possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x - 1 })
+                                            }
                                         }
+                                        None => {}
                                     }
-                                    None => {}
                                 }
 
                                 // Right kill
-                                match self.check_by_point(piece_point.y - 1, piece_point.x + 1) {
-                                    Some(loc) => {
-                                        if piece_color != self.colors[loc] {
-                                            possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x + 1 })
+                                if piece_point.x != 7 {
+                                    match self.check_by_point(piece_point.y - 1, piece_point.x + 1) {
+                                        Some(loc) => {
+                                            if piece_color != self.colors[loc] {
+                                                possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x + 1 })
+                                            }
                                         }
+                                        None => {}
                                     }
-                                    None => {}
                                 }
                             }
                         }
@@ -512,6 +520,7 @@ impl Pieces {
                 was_moved = true;
             }
         }
+        debug!("Piece Moved successfully!");
         Ok(was_moved)
     }
 
