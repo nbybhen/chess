@@ -51,11 +51,12 @@ fn main() -> Result<(), String> {
 
     // Presets variables (mutable)
     let mut first_click: bool = true;
-    let mut loc: Option<usize> = Default::default();
+    let mut current_piece_loc: Option<usize> = Default::default();
     let mut valid_moves: Vec<Point> = vec![];
     let mut valid_kills: Vec<Point> = vec![];
     let mut state: State = State::Play;
     let mut predators: Vec<usize> = vec![];
+    let mut current_piece = Point{y: u32::MAX, x: u32::MAX};
 
     // Event Loop
     'running: loop {
@@ -89,9 +90,10 @@ fn main() -> Result<(), String> {
                                 debug!("FIRST CLICK");
                                 //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
 
-                                // Ensures it exists
-                                loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
-                                let selected_type = match loc {
+                                // Ensures a piece exists at tile clicked on 
+                                current_piece_loc = pieces.locations.iter().position(|p| p.x == clicked.x && p.y == clicked.y);
+                                current_piece = clicked;
+                                let selected_type = match current_piece_loc {
                                     Some(x) => pieces.types.get(x),
                                     None => Option::None,
                                 };
@@ -99,12 +101,14 @@ fn main() -> Result<(), String> {
                                 // Renders moves for selected piece
                                 debug!("This piece is: {:?}", selected_type);
                                 if selected_type.is_some() {
-                                    let pair = pieces.possible_moves(&squares, loc.unwrap());
+                                    let pair = pieces.possible_moves(&squares, current_piece_loc.unwrap());
                                     valid_moves = pair.0;
                                     valid_kills = pair.1;
                                     debug!("Valid moves: {valid_moves:?}");
+                                    debug!("Valid kills: {valid_kills:?}");
+
                                     renderer.render_board()?;
-                                    renderer.render_selected(&squares, &pieces, loc.unwrap())?;
+                                    renderer.render_selected(&squares, &pieces, current_piece_loc.unwrap())?;
                                     renderer.render_moves(&squares, &valid_moves)?;
                                     renderer.render_kills(&squares, &valid_kills)?;
                                     renderer.render_pieces(&squares, &pieces)?;
@@ -113,7 +117,7 @@ fn main() -> Result<(), String> {
                             } else {
                                 debug!("SECOND CLICK");
                                 //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
-                                pieces.move_piece(&valid_moves, &valid_kills, loc.unwrap(), &clicked)?;
+                                pieces.move_piece(&valid_moves, &valid_kills, &current_piece, &clicked)?;
                                 renderer.render_board()?;
                                 renderer.render_pieces(&squares, &pieces)?;
                                 first_click = true;
