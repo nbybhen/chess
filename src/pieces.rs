@@ -127,10 +127,6 @@ impl Pieces {
         let piece_color = self.colors[piece_loc].clone();
         let piece_first_perms = self.first_move.get(piece_loc).unwrap();
 
-        let mut i = 0;
-        println!("Piece point: {piece_point:?}");
-        println!("Piece Type: {piece_type:?}");
-
         match piece_type {
             Type::Pawn => {
                 match piece_color {

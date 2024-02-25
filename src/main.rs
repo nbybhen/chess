@@ -25,6 +25,32 @@ use std::time::Duration;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
+// Changes state to Check if King is at risk
+fn is_king_endangered(squares: &Squares, pieces: &mut Pieces) -> bool {
+    let num_of_pieces: usize = pieces.locations.len();
+
+    let black_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::Black).unwrap();
+    let white_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::White).unwrap();
+    
+    // Checks if each piece has a King in it's kill path
+    for index in 0..num_of_pieces {
+        let (_, valid_kills) = pieces.possible_moves(&squares, index);
+        for pnt in valid_kills {
+            if &pnt == pieces.locations.get(black_king_index).unwrap() {
+                debug!("Black King in DANGER!");
+                return true;
+            }
+
+            if &pnt == pieces.locations.get(white_king_index).unwrap() {
+                debug!("White King in DANGER!");
+                return true;
+            }
+        }
+    } 
+
+    false
+}
+
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -101,9 +127,7 @@ fn main() -> Result<(), String> {
                                 // Renders moves for selected piece
                                 debug!("This piece is: {:?}", selected_type);
                                 if selected_type.is_some() {
-                                    let pair = pieces.possible_moves(&squares, current_piece_loc.unwrap());
-                                    valid_moves = pair.0;
-                                    valid_kills = pair.1;
+                                    (valid_moves, valid_kills) = pieces.possible_moves(&squares, current_piece_loc.unwrap());
                                     debug!("Valid moves: {valid_moves:?}");
                                     debug!("Valid kills: {valid_kills:?}");
 
@@ -121,6 +145,10 @@ fn main() -> Result<(), String> {
                                 renderer.render_board()?;
                                 renderer.render_pieces(&squares, &pieces)?;
                                 first_click = true;
+
+                                if is_king_endangered(&squares, &mut pieces) {
+                                    state = State::Check;
+                                }
 
                                 debug!("Current state: {state:?}");
                             }
