@@ -97,19 +97,16 @@ fn main() -> Result<(), String> {
         match state {
             // Checks if it is in CHECK
             State::Check => {
-
                  debug!("Predator(s) are {:?}", predators_index.iter().map(|x| pieces.types.get(*x).unwrap()).collect::<Vec<_>>());
 
-                let black_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::Black).unwrap();
-                let white_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::White).unwrap();
-     
+                let mut danger_zone: Vec<Point> = vec![];
+                let king_loc = pieces.locations.get(prey_index).unwrap(); 
+
                 // Obtain the type of the predator pieces to get pathing
                 for index in &predators_index {
                     match *pieces.types.get(*index).unwrap() {
                         Type::Bishop => {
-                            let king_loc = pieces.locations.get(prey_index).unwrap(); 
                             let bish_loc = pieces.locations.get(*index).unwrap();
-                            let mut danger_zone: Vec<Point> = vec![];
                             let (mut x, mut y) = (bish_loc.x, bish_loc.y);
                             // NE
                             if king_loc.x > bish_loc.x && king_loc.y < bish_loc.y {
@@ -119,14 +116,141 @@ fn main() -> Result<(), String> {
                                     danger_zone.push(Point {x, y});
                                 } 
                             }
-                            renderer.render_board()?;
-                            renderer.render_danger_zones(&squares, &danger_zone); 
-                            renderer.render_pieces(&squares, &pieces);
+                            // NW
+                            if king_loc.x < bish_loc.x && king_loc.y < bish_loc.y {
+                                while x > king_loc.x && y > king_loc.y {
+                                    x -= 1;
+                                    y -= 1;
+                                    danger_zone.push(Point {x, y});
+                                }
+                            }
+                            // SE
+                            if king_loc.x > bish_loc.x && king_loc.y > bish_loc.y {
+                                while x < king_loc.x && king_loc.y < y {
+                                    x += 1;
+                                    y += 1;
+                                    danger_zone.push(Point {x, y});
+                                }
+                            }
+                            // SW
+                            if king_loc.x < bish_loc.x && king_loc.y > bish_loc.y {
+                                while x > king_loc.x && king_loc.y > y {
+                                    x -= 1;
+                                    y += 1;
+                                    danger_zone.push(Point {x, y});
+                                }
+                            }
                         },
-                        Type::King | _ => {unreachable!()}
+
+                        // Pawn just needs to highlight the King's square 
+                        Type::Pawn => danger_zone.push(Point {x: king_loc.x, y: king_loc.y}),
+
+                        Type::Rook => {
+                            let rook_loc = pieces.locations.get(*index).unwrap();
+                            let (mut x, mut y) = (rook_loc.x, rook_loc.y);
+
+                            // North
+                            while y > king_loc.y {
+                                y -= 1;
+                                danger_zone.push(Point{x, y});
+                            }
+
+                            // South
+                            while y < king_loc.y {
+                                y += 1;
+                                danger_zone.push(Point{x, y});
+                            }
+
+                            // East
+                            while x < king_loc.x {
+                                x += 1;
+                                danger_zone.push(Point{x, y});
+                            }
+
+                            // West
+                            while x > king_loc.x {
+                                x -= 1;
+                                danger_zone.push(Point{x, y});
+                            }
+                        },
+
+                        Type::Queen => {
+                            let queen_loc = pieces.locations.get(*index).unwrap();
+                            let (mut x, mut y) = (queen_loc.x, queen_loc.y);
+
+                            // Ensures King has same Y or X value for Rook moves
+                            if (x == king_loc.x || y == king_loc.y) {
+                                // North
+                                while y > king_loc.y {
+                                    y -= 1;
+                                    danger_zone.push(Point{x, y});
+                                }
+
+                                // South
+                                while y < king_loc.y {
+                                    y += 1;
+                                    danger_zone.push(Point{x, y});
+                                }
+
+                                // East
+                                while x < king_loc.x {
+                                    x += 1;
+                                    danger_zone.push(Point{x, y});
+                                }
+
+                                // West
+                                while x > king_loc.x {
+                                    x -= 1;
+                                    danger_zone.push(Point{x, y});
+                                }
+                            }
+                            else {
+                                // NE
+                                if king_loc.x > queen_loc.x && king_loc.y < queen_loc.y {
+                                    while x < king_loc.x && y > king_loc.y {
+                                        x += 1;
+                                        y -= 1;
+                                        danger_zone.push(Point {x, y});
+                                    } 
+                                }
+                                // NW
+                                if king_loc.x < queen_loc.x && king_loc.y < queen_loc.y {
+                                    while x > king_loc.x && y > king_loc.y {
+                                        x -= 1;
+                                        y -= 1;
+                                        danger_zone.push(Point {x, y});
+                                    }
+                                }
+                                // SE
+                                if king_loc.x > queen_loc.x && king_loc.y > queen_loc.y {
+                                    while x < king_loc.x && king_loc.y < y {
+                                        x += 1;
+                                        y += 1;
+                                        danger_zone.push(Point {x, y});
+                                    }
+                                }
+                                // SW
+                                if king_loc.x < queen_loc.x && king_loc.y > queen_loc.y {
+                                    while x > king_loc.x && king_loc.y > y {
+                                        x -= 1;
+                                        y += 1;
+                                        danger_zone.push(Point {x, y});
+                                    }
+                                }
+                            }
+
+                        },
+
+                       Type::Knight => danger_zone.push(Point{ x: king_loc.x, y: king_loc.y}), 
+                        
+                       Type::King | _ => {unreachable!()}
                     }
-                    
                 }
+
+                renderer.render_board()?;
+                renderer.render_danger_zones(&squares, &danger_zone); 
+                renderer.render_pieces(&squares, &pieces);
+
 
                 for event in events.wait_iter() {
                     match event {
