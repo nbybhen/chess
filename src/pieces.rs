@@ -119,7 +119,7 @@ impl Pieces {
 
     pub fn possible_moves(&mut self, _squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>) {
         let mut possible_locations: Vec<Point> = vec![];
-        let mut possible_kills: Vec<Point> = vec![];
+       let mut possible_kills: Vec<Point> = vec![];
 
         // Data of the selected piece
         let piece_type = self.types.get(piece_loc).unwrap();

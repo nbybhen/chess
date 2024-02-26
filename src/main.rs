@@ -25,12 +25,15 @@ use std::time::Duration;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
-// Changes state to Check if King is at risk
-fn is_king_endangered(squares: &Squares, pieces: &mut Pieces) -> bool {
+// Changes state to Check if King is at risk, and returns King's index
+fn is_king_endangered(squares: &Squares, pieces: &mut Pieces, pred_index: &mut Vec<usize>) -> (bool, usize) {
     let num_of_pieces: usize = pieces.locations.len();
 
     let black_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::Black).unwrap();
     let white_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::White).unwrap();
+
+    let mut pred_exists: bool = false;
+    let mut prey_index: usize = usize::MAX;
     
     // Checks if each piece has a King in it's kill path
     for index in 0..num_of_pieces {
@@ -38,17 +41,21 @@ fn is_king_endangered(squares: &Squares, pieces: &mut Pieces) -> bool {
         for pnt in valid_kills {
             if &pnt == pieces.locations.get(black_king_index).unwrap() {
                 debug!("Black King in DANGER!");
-                return true;
+                pred_index.push(index);
+                pred_exists = true;
+                prey_index = black_king_index;
             }
 
             if &pnt == pieces.locations.get(white_king_index).unwrap() {
                 debug!("White King in DANGER!");
-                return true;
+                pred_index.push(index);
+                pred_exists = true;
+                prey_index = white_king_index;
             }
         }
     } 
 
-    false
+    (pred_exists, prey_index)
 }
 
 fn main() -> Result<(), String> {
@@ -81,15 +88,47 @@ fn main() -> Result<(), String> {
     let mut valid_moves: Vec<Point> = vec![];
     let mut valid_kills: Vec<Point> = vec![];
     let mut state: State = State::Play;
-    let mut predators: Vec<usize> = vec![];
+    let mut predators_index: Vec<usize> = vec![];
     let mut current_piece = Point{y: u32::MAX, x: u32::MAX};
+    let mut prey_index: usize = usize::MAX;
 
     // Event Loop
     'running: loop {
         match state {
             // Checks if it is in CHECK
             State::Check => {
-                for event in events.poll_iter() {
+
+                 debug!("Predator(s) are {:?}", predators_index.iter().map(|x| pieces.types.get(*x).unwrap()).collect::<Vec<_>>());
+
+                let black_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::Black).unwrap();
+                let white_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::White).unwrap();
+     
+                // Obtain the type of the predator pieces to get pathing
+                for index in &predators_index {
+                    match *pieces.types.get(*index).unwrap() {
+                        Type::Bishop => {
+                            let king_loc = pieces.locations.get(prey_index).unwrap(); 
+                            let bish_loc = pieces.locations.get(*index).unwrap();
+                            let mut danger_zone: Vec<Point> = vec![];
+                            let (mut x, mut y) = (bish_loc.x, bish_loc.y);
+                            // NE
+                            if king_loc.x > bish_loc.x && king_loc.y < bish_loc.y {
+                                while x < king_loc.x && y > king_loc.y {
+                                    x += 1;
+                                    y -= 1;
+                                    danger_zone.push(Point {x, y});
+                                } 
+                            }
+                            renderer.render_board()?;
+                            renderer.render_danger_zones(&squares, &danger_zone); 
+                            renderer.render_pieces(&squares, &pieces);
+                        },
+                        Type::King | _ => {unreachable!()}
+                    }
+                    
+                }
+
+                for event in events.wait_iter() {
                     match event {
                         Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
                         Event::MouseButtonDown { x, y, .. } => {
@@ -97,10 +136,12 @@ fn main() -> Result<(), String> {
                                 x: (x / (SCREEN_WIDTH / 8) as i32) as u32,
                                 y: (y / (SCREEN_HEIGHT / 8) as i32) as u32,
                             };
+                            debug!("Does it register clicks in-check??");
                         }
                         _ => {}
                     }
                 }
+
             }
             State::Play => {
                 for event in events.poll_iter() {
@@ -146,9 +187,13 @@ fn main() -> Result<(), String> {
                                 renderer.render_pieces(&squares, &pieces)?;
                                 first_click = true;
 
-                                if is_king_endangered(&squares, &mut pieces) {
+                                let tup = is_king_endangered(&squares, &mut pieces, &mut predators_index);
+                                if tup.0 {
                                     state = State::Check;
+                                    prey_index = tup.1;
                                 }
+
+                                debug!("Prey_index: {prey_index}");
 
                                 debug!("Current state: {state:?}");
                             }
