@@ -87,6 +87,7 @@ fn main() -> Result<(), String> {
     let mut current_piece_loc: Option<usize> = Default::default();
     let mut valid_moves: Vec<Point> = vec![];
     let mut valid_kills: Vec<Point> = vec![];
+    let mut prey_valid_kills: Vec<Point> = vec![];
     let mut state: State = State::Play;
     let mut predators_index: Vec<usize> = vec![];
     let mut current_piece = Point{y: u32::MAX, x: u32::MAX};
@@ -100,7 +101,7 @@ fn main() -> Result<(), String> {
                  debug!("Predator(s) are {:?}", predators_index.iter().map(|x| pieces.types.get(*x).unwrap()).collect::<Vec<_>>());
 
                 let mut danger_zone: Vec<Point> = vec![];
-                let king_loc = pieces.locations.get(prey_index).unwrap(); 
+                let king_loc: Point = pieces.locations[prey_index]; 
 
                 // Obtain the type of the predator pieces to get pathing
                 for index in &predators_index {
@@ -249,7 +250,7 @@ fn main() -> Result<(), String> {
 
                 renderer.render_board()?;
                 renderer.render_danger_zones(&squares, &danger_zone); 
-                renderer.render_pieces(&squares, &pieces);
+                renderer.render_pieces(&squares, &pieces)?;
 
 
                 for event in events.wait_iter() {
@@ -260,7 +261,77 @@ fn main() -> Result<(), String> {
                                 x: (x / (SCREEN_WIDTH / 8) as i32) as u32,
                                 y: (y / (SCREEN_HEIGHT / 8) as i32) as u32,
                             };
-                            debug!("Does it register clicks in-check??");
+                            if first_click {
+                                debug!("FIRST CLICK");
+                                debug!("Predators_index: {predators_index:?}");
+
+                                // If only one piece puts King at risk,
+                                // another piece can block the path or kill the predator
+                                if predators_index.is_empty() {
+                                    state = State::Play;
+                                    break;
+                                }
+
+                                if predators_index.len() == 1 {
+                                    // 1. Find all pieces of the same color as prey
+                                    let prey_color = pieces.colors.get(prey_index).unwrap();
+                                    let defense_pieces: Vec<usize> = pieces.colors.iter().enumerate().filter(|(_, x)| *x == prey_color).map(|(i, _)| i).collect();
+
+                                    // Contains index to pieces that can protect
+                                    let mut defenders: Vec<usize> = vec![];
+                                    // 2. Check if any can kill the predator
+                                    let pred_loc: Point = pieces.locations[predators_index[0]];
+                                    for idx in defense_pieces {
+                                        let (_, valid_kills) = pieces.possible_moves(&squares, idx);
+                                        if valid_kills.iter().any(|x| *x == pred_loc) {
+                                            println!("Defender type: {:?}", pieces.types[idx]);
+                                            defenders.push(idx);
+                                        }
+                                    }
+                                    debug!("Defenders: {defenders:?}");
+                                    // 3. Check if any can stand in the danger_path
+                                    // 4. Ensure those that pass #3 will take King out of check
+                                    // 5. Only allow those to move.
+                                    //let selected_index = pieces.locations.iter().position(|p| *p == clicked);
+
+                                    if let Some(selected_idx) = pieces.locations.iter().position(|p| *p == clicked) {
+                                        if defenders.contains(&selected_idx) {
+                                            (_, prey_valid_kills) = pieces.possible_moves(&squares, selected_idx);
+                                            current_piece = pieces.locations[selected_idx];
+                                            renderer.render_board()?;
+                                            renderer.render_selected(&squares, &pieces, selected_idx)?;
+                                            renderer.render_kills(&squares, &prey_valid_kills)?;
+                                            renderer.render_pieces(&squares, &pieces)?;
+                                            first_click = false;
+                                            debug!("First_click: {first_click}");
+                                        }
+                                    }
+                                }
+                                // Multiple predators
+                                else {
+                                    todo!()
+                                }
+                            }
+                            else {
+                                debug!("Second click!");
+
+                                debug!("Valid Kills: {prey_valid_kills:?}");
+                                if pieces.move_piece(&vec![], &prey_valid_kills, &current_piece, &clicked).unwrap() {
+                                    state = State::Play;
+                                    renderer.render_board()?;
+                                    renderer.render_pieces(&squares, &pieces);
+
+                                    // Empties vector
+                                    predators_index = vec![];
+
+                                }
+                                else {
+                                    renderer.render_board()?;
+                                    renderer.render_danger_zones(&squares, &danger_zone); 
+                                    renderer.render_pieces(&squares, &pieces);
+                                }
+                                first_click = true;
+                            }
                         }
                         _ => {}
                     }

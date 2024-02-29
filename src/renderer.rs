@@ -163,27 +163,18 @@ impl Renderer {
         Ok(())
     }
 
-    // Renders all the "danger paths" as green
+    // Renders all the "danger paths" as orange 
     pub fn render_danger_zones(&mut self, squares: &Squares, danger_zones: &Vec<Point>) {
         debug!("RENDERING DANGER ZONES");
         debug!("Danger Zones: {danger_zones:?}");
 
-        // Sets predators to green
-        self.canvas.set_draw_color(Color::RGB(75, 200, 10));
+        // Sets predators to ORANGE 
+        self.canvas.set_draw_color(Color::RGB(242, 159, 5));
         for point in danger_zones {
             self.canvas.fill_rect(*squares.squares.get((point.y * 8 + point.x) as usize).unwrap()).unwrap();
         }
     }
 
-    pub fn render_as_pred(&mut self, squares: &Squares, path: &Vec<Point>) {
-        debug!("Setting predators to GREEN");
-        println!("Path: {path:?}");
-        // Sets predators to green
-        self.canvas.set_draw_color(Color::RGB(75, 200, 10));
-        for point in path.clone() {
-            self.canvas.fill_rect(*squares.squares.get((point.y * 8 + point.x) as usize).unwrap()).unwrap();
-        }
-    }
 }
 
 
