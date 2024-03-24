@@ -304,13 +304,14 @@ fn main() -> Result<(), String> {
                                     // 4. Only allow those to move.
 
                                     if let Some(selected_idx) = pieces.locations.iter().position(|p| *p == clicked) {
-                                        if defenders.contains(&selected_idx) {
+                                        if defenders.contains(&selected_idx) || selected_idx == prey_index {
                                             let (def_initial_valid_moves, def_initial_valid_kills) = pieces.possible_moves(&squares, selected_idx);
                                             defender_valid_kills = if def_initial_valid_kills.contains(&pred_loc) {vec![pred_loc]} else {vec![]};
                                             defender_valid_moves = if clicked != prey_loc {def_initial_valid_moves.iter().filter(|p| danger_zone.contains(p) && **p != prey_loc).map(|p| *p).collect()} else {def_initial_valid_moves.iter()
                                                 .filter(|p| !danger_zone.contains(p))
                                                 .map(|p| *p)
                                                 .collect()};
+                                            debug!("Defender Valid Moves: {defender_valid_moves:?}");
                                             current_piece = pieces.locations[selected_idx];
                                             renderer.render_board()?;
                                             renderer.render_selected(&squares, &pieces, selected_idx)?;
