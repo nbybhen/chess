@@ -307,8 +307,7 @@ fn main() -> Result<(), String> {
                                         if defenders.contains(&selected_idx) {
                                             let (def_initial_valid_moves, def_initial_valid_kills) = pieces.possible_moves(&squares, selected_idx);
                                             defender_valid_kills = if def_initial_valid_kills.contains(&pred_loc) {vec![pred_loc]} else {vec![]};
-                                            defender_valid_moves = def_initial_valid_moves.iter().filter(|p| danger_zone.contains(p) && **p != prey_loc).map(|p| *p).collect();
-
+                                            defender_valid_moves = if clicked != prey_loc {def_initial_valid_moves.iter().filter(|p| danger_zone.contains(p) && **p != prey_loc).map(|p| *p).collect()} else {def_initial_valid_moves};
                                             current_piece = pieces.locations[selected_idx];
                                             renderer.render_board()?;
                                             renderer.render_selected(&squares, &pieces, selected_idx)?;
@@ -318,6 +317,7 @@ fn main() -> Result<(), String> {
                                             first_click = false;
                                             debug!("First_click: {first_click}");
                                         }
+                                        
                                     }
                                 }
                                 // Multiple predators
