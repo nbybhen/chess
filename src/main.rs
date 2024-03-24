@@ -307,7 +307,10 @@ fn main() -> Result<(), String> {
                                         if defenders.contains(&selected_idx) {
                                             let (def_initial_valid_moves, def_initial_valid_kills) = pieces.possible_moves(&squares, selected_idx);
                                             defender_valid_kills = if def_initial_valid_kills.contains(&pred_loc) {vec![pred_loc]} else {vec![]};
-                                            defender_valid_moves = if clicked != prey_loc {def_initial_valid_moves.iter().filter(|p| danger_zone.contains(p) && **p != prey_loc).map(|p| *p).collect()} else {def_initial_valid_moves};
+                                            defender_valid_moves = if clicked != prey_loc {def_initial_valid_moves.iter().filter(|p| danger_zone.contains(p) && **p != prey_loc).map(|p| *p).collect()} else {def_initial_valid_moves.iter()
+                                                .filter(|p| !danger_zone.contains(p))
+                                                .map(|p| *p)
+                                                .collect()};
                                             current_piece = pieces.locations[selected_idx];
                                             renderer.render_board()?;
                                             renderer.render_selected(&squares, &pieces, selected_idx)?;
@@ -378,6 +381,19 @@ fn main() -> Result<(), String> {
                                 debug!("This piece is: {:?}", selected_type);
                                 if selected_type.is_some() {
                                     (valid_moves, valid_kills) = pieces.possible_moves(&squares, current_piece_loc.unwrap());
+                                    if selected_type.unwrap() == &Type::King {
+                                        let king_color = pieces.colors[current_piece_loc.unwrap()];
+                                        for (idx, clr) in pieces.colors.iter().enumerate() {
+                                            if clr != &king_color && pieces.types.get(idx).unwrap() != &Type::Pawn{
+                                                let (temp_valid_moves, _) = pieces.possible_moves(&squares, idx);
+                                                for item in temp_valid_moves {
+                                                    if let Some(pos) = valid_moves.iter().position(|x| *x == item) {
+                                                        valid_moves.remove(pos);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                     debug!("Valid moves: {valid_moves:?}");
                                     debug!("Valid kills: {valid_kills:?}");
 

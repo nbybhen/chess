@@ -6,7 +6,7 @@ pub struct Point {
     pub y: u32,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum PieceColor {
     Black,
     White,
@@ -102,7 +102,7 @@ impl Pieces {
     // Checks Pieces vectors to ensure either:
     // 1. Point is "open" to move (empty vs taken by same color)
     // 2. Point contains piece of opposite color
-    pub fn valid_moves(&mut self, color: &PieceColor, pos_loc: &mut Vec<Point>, pos_kills: &mut Vec<Point>, y: u32, x: u32) -> bool {
+    pub fn valid_moves(&self, color: &PieceColor, pos_loc: &mut Vec<Point>, pos_kills: &mut Vec<Point>, y: u32, x: u32) -> bool {
         match self.check_by_point(y, x) {
             Some(loc) => {
                 if self.colors[loc] != *color {
@@ -117,9 +117,9 @@ impl Pieces {
         }
     }
 
-    pub fn possible_moves(&mut self, _squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>) {
+    pub fn possible_moves(&self, _squares: &Squares, piece_loc: usize) -> (Vec<Point>, Vec<Point>) {
         let mut possible_locations: Vec<Point> = vec![];
-       let mut possible_kills: Vec<Point> = vec![];
+        let mut possible_kills: Vec<Point> = vec![];
 
         // Data of the selected piece
         let piece_type = self.types.get(piece_loc).unwrap();
