@@ -87,7 +87,8 @@ fn main() -> Result<(), String> {
     let mut current_piece_loc: Option<usize> = Default::default();
     let mut valid_moves: Vec<Point> = vec![];
     let mut valid_kills: Vec<Point> = vec![];
-    let mut prey_valid_kills: Vec<Point> = vec![];
+    let mut defender_valid_moves: Vec<Point> = vec![];
+    let mut defender_valid_kills: Vec<Point> = vec![];
     let mut state: State = State::Play;
     let mut predators_index: Vec<usize> = vec![];
     let mut current_piece = Point{y: u32::MAX, x: u32::MAX};
@@ -278,34 +279,41 @@ fn main() -> Result<(), String> {
                                     debug!("Prey location: {prey_loc:?}");
                                     let prey_color = pieces.colors.get(prey_index).unwrap();
                                     debug!("Prey Color: {prey_color:?}");
+
+                                    // Index of pieces of the same color as endangered King
                                     let defense_pieces: Vec<usize> = pieces.colors.iter().enumerate().filter(|(_, x)| *x == prey_color).map(|(i, _)| i).collect();
                                     debug!("Prey Teammates: {defense_pieces:?}");
 
-                                    // Contains index to pieces that can protect
+                                    // Contains index to pieces that can kill predator 
                                     let mut defenders: Vec<usize> = vec![];
-                                    // 2. Check if any can kill the predator
+
+                                    // 2. Check if any piece can kill predator OR can block danger
+                                    //    path.
                                     let pred_loc: Point = pieces.locations[predators_index[0]];
                                     debug!("Predator's location: {pred_loc:?}");
                                     for idx in defense_pieces {
-                                        let (_, valid_kills) = pieces.possible_moves(&squares, idx);
-                                        if valid_kills.iter().any(|x| *x == pred_loc) {
+                                        let (valid_moves, valid_kills) = pieces.possible_moves(&squares, idx);
+                                        if valid_kills.iter().any(|x| *x == pred_loc) 
+                                        || valid_moves.iter().any(|p| danger_zone.contains(p) && *p != prey_loc) {
                                             println!("Defender type: {:?}", pieces.types[idx]);
                                             defenders.push(idx);
                                         }
                                     }
                                     debug!("Defenders: {defenders:?}");
-                                    // 3. Check if any can stand in the danger_path
-                                    // 4. Ensure those that pass #3 will take King out of check
-                                    // 5. Only allow those to move.
+                                    // 3. Ensure those that pass #3 will take King out of check
+                                    // 4. Only allow those to move.
 
                                     if let Some(selected_idx) = pieces.locations.iter().position(|p| *p == clicked) {
                                         if defenders.contains(&selected_idx) {
-                                            //(_, prey_valid_kills) = pieces.possible_moves(&squares, selected_idx);
-                                            prey_valid_kills = vec![pred_loc];
+                                            let (def_initial_valid_moves, def_initial_valid_kills) = pieces.possible_moves(&squares, selected_idx);
+                                            defender_valid_kills = if def_initial_valid_kills.contains(&pred_loc) {vec![pred_loc]} else {vec![]};
+                                            defender_valid_moves = def_initial_valid_moves.iter().filter(|p| danger_zone.contains(p) && **p != prey_loc).map(|p| *p).collect();
+
                                             current_piece = pieces.locations[selected_idx];
                                             renderer.render_board()?;
                                             renderer.render_selected(&squares, &pieces, selected_idx)?;
-                                            renderer.render_kills(&squares, &prey_valid_kills)?;
+                                            renderer.render_moves(&squares, &defender_valid_moves);
+                                            renderer.render_kills(&squares, &defender_valid_kills)?;
                                             renderer.render_pieces(&squares, &pieces)?;
                                             first_click = false;
                                             debug!("First_click: {first_click}");
@@ -320,8 +328,9 @@ fn main() -> Result<(), String> {
                             else {
                                 debug!("Second click!");
 
-                                debug!("Valid Kills: {prey_valid_kills:?}");
-                                if pieces.move_piece(&vec![], &prey_valid_kills, &current_piece, &clicked).unwrap() {
+                                debug!("Valid Kills: {defender_valid_kills:?}");
+                                debug!("Valid Moves: {defender_valid_moves:?}");
+                                if pieces.move_piece(&defender_valid_moves, &defender_valid_kills, &current_piece, &clicked).unwrap() {
                                     state = State::Play;
                                     renderer.render_board()?;
                                     renderer.render_pieces(&squares, &pieces);
