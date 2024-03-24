@@ -137,7 +137,32 @@ impl Pieces {
                             if self.check_by_point(piece_point.y - 2, piece_point.x).is_none() {
                                 possible_locations.push(Point { y: piece_point.y - 2, x: piece_point.x });
                             }
-                        } else {
+                             // Left kill
+                            if piece_point.x != 0 {
+                                match self.check_by_point(piece_point.y - 1, piece_point.x - 1) {
+                                    Some(loc) => {
+                                        if piece_color != self.colors[loc] {
+                                            possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x - 1 })
+                                        }
+                                    }
+                                    None => {}
+                                }
+                            }
+
+                            // Right kill
+                            if piece_point.x != 7 {
+                                match self.check_by_point(piece_point.y - 1, piece_point.x + 1) {
+                                    Some(loc) => {
+                                        if piece_color != self.colors[loc] {
+                                            possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x + 1 })
+                                        }
+                                    }
+                                    None => {}
+                                }
+                            }
+
+                    } 
+                        else {
                             if piece_point.y != 0 && self.check_by_point(piece_point.y - 1, piece_point.x).is_none() {
                                 possible_locations.push(Point { y: piece_point.y - 1, x: piece_point.x });
                             }
@@ -176,6 +201,30 @@ impl Pieces {
                             if self.check_by_point(piece_point.y + 2, piece_point.x).is_none() {
                                 possible_locations.push(Point { y: piece_point.y + 2, x: piece_point.x });
                             }
+                            // Left kill
+                            if piece_point.x != 0 {
+                                match self.check_by_point(piece_point.y - 1, piece_point.x - 1) {
+                                    Some(loc) => {
+                                        if piece_color != self.colors[loc] {
+                                            possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x - 1 })
+                                        }
+                                    }
+                                    None => {}
+                                }
+                            }
+
+                            // Right kill
+                            if piece_point.x != 7 {
+                                match self.check_by_point(piece_point.y - 1, piece_point.x + 1) {
+                                    Some(loc) => {
+                                        if piece_color != self.colors[loc] {
+                                            possible_kills.push(Point { y: piece_point.y - 1, x: piece_point.x + 1 })
+                                        }
+                                    }
+                                    None => {}
+                                }
+                            }
+
                         } else {
                             if piece_point.y != 7 && self.check_by_point(piece_point.y + 1, piece_point.x).is_none() {
                                 possible_locations.push(Point { y: piece_point.y + 1, x: piece_point.x });
@@ -476,6 +525,8 @@ impl Pieces {
                 }
             }
             Type::King => {
+
+                // Check if spots are in attack range of opposing pieces
 
                 // Left
                 if piece_point.x > 0 {

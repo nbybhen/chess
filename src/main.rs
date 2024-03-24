@@ -274,13 +274,18 @@ fn main() -> Result<(), String> {
 
                                 if predators_index.len() == 1 {
                                     // 1. Find all pieces of the same color as prey
+                                    let prey_loc = pieces.locations[prey_index];
+                                    debug!("Prey location: {prey_loc:?}");
                                     let prey_color = pieces.colors.get(prey_index).unwrap();
+                                    debug!("Prey Color: {prey_color:?}");
                                     let defense_pieces: Vec<usize> = pieces.colors.iter().enumerate().filter(|(_, x)| *x == prey_color).map(|(i, _)| i).collect();
+                                    debug!("Prey Teammates: {defense_pieces:?}");
 
                                     // Contains index to pieces that can protect
                                     let mut defenders: Vec<usize> = vec![];
                                     // 2. Check if any can kill the predator
                                     let pred_loc: Point = pieces.locations[predators_index[0]];
+                                    debug!("Predator's location: {pred_loc:?}");
                                     for idx in defense_pieces {
                                         let (_, valid_kills) = pieces.possible_moves(&squares, idx);
                                         if valid_kills.iter().any(|x| *x == pred_loc) {
@@ -292,11 +297,11 @@ fn main() -> Result<(), String> {
                                     // 3. Check if any can stand in the danger_path
                                     // 4. Ensure those that pass #3 will take King out of check
                                     // 5. Only allow those to move.
-                                    //let selected_index = pieces.locations.iter().position(|p| *p == clicked);
 
                                     if let Some(selected_idx) = pieces.locations.iter().position(|p| *p == clicked) {
                                         if defenders.contains(&selected_idx) {
-                                            (_, prey_valid_kills) = pieces.possible_moves(&squares, selected_idx);
+                                            //(_, prey_valid_kills) = pieces.possible_moves(&squares, selected_idx);
+                                            prey_valid_kills = vec![pred_loc];
                                             current_piece = pieces.locations[selected_idx];
                                             renderer.render_board()?;
                                             renderer.render_selected(&squares, &pieces, selected_idx)?;
@@ -309,7 +314,7 @@ fn main() -> Result<(), String> {
                                 }
                                 // Multiple predators
                                 else {
-                                    todo!()
+                                    todo!("NOT DONE YET");
                                 }
                             }
                             else {
