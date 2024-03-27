@@ -133,8 +133,6 @@ impl Renderer {
             let loc = squares.points.iter().position(|p| p == item);
             match loc {
                 Some(p) => {
-                    //debug!("Item: {item:?}");
-                    debug!("AT POINT: {:?}", p);
                     self.canvas.fill_rect(*squares.squares.get(p).unwrap())?;
                 }
                 None => {
@@ -152,7 +150,6 @@ impl Renderer {
             let loc = squares.points.iter().position(|p| p.x == item.x && p.y == item.y);
             match loc {
                 Some(x) => {
-                    debug!("KILL AT POINT: {:?}", x);
                     self.canvas.fill_rect(*squares.squares.get(x).unwrap())?;
                 }
                 None => {
@@ -166,7 +163,6 @@ impl Renderer {
     // Renders all the "danger paths" as orange 
     pub fn render_danger_zones(&mut self, squares: &Squares, danger_zones: &Vec<Point>) {
         debug!("RENDERING DANGER ZONES");
-        debug!("Danger Zones: {danger_zones:?}");
 
         // Sets predators to ORANGE 
         self.canvas.set_draw_color(Color::RGB(242, 159, 5));
@@ -174,7 +170,6 @@ impl Renderer {
             self.canvas.fill_rect(*squares.squares.get((point.y * 8 + point.x) as usize).unwrap()).unwrap();
         }
     }
-
 }
 
 

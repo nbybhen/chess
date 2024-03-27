@@ -587,14 +587,12 @@ impl Pieces {
                 self.locations[current_piece_loc] = *point;
                 self.first_move[current_piece_loc] = false;
                 was_moved = true;
-                debug!("Piece Moved successfully!");
             } 
             else if valid_kills.iter().any(|x| x == point) {
                 debug!("KILLING PIECE");
 
                 // Deletes previous piece
                 let dying_piece_loc = self.locations.iter().position(|p| p == point).unwrap();
-                debug!("Dying piece color: {:?}", self.colors.get(dying_piece_loc).unwrap());
 
                 // Replaces with moved piece
                 self.locations.remove(dying_piece_loc);
@@ -605,7 +603,7 @@ impl Pieces {
                 current_piece_loc = self.locations.iter().position(|p| p == current_piece).unwrap();
 
                 self.locations[current_piece_loc] = *point;
-                debug!("Changing current_piece to {point:?}");
+
                 self.first_move[current_piece_loc] = false;
 
                 was_moved = true;
@@ -633,7 +631,6 @@ impl Pieces {
             }
         }
 
-        debug!("Possible Check Moves: {ret:?}");
         ret
 
     } 

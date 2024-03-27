@@ -58,6 +58,150 @@ fn is_king_endangered(squares: &Squares, pieces: &mut Pieces, pred_index: &mut V
     (pred_exists, prey_index)
 }
 
+fn get_danger_zone(pieces: &Pieces, danger_zone: &mut Vec<Point>, king_loc: &Point, index: &usize) {
+    match *pieces.types.get(*index).unwrap() {
+        Type::Bishop => {
+            let bish_loc = pieces.locations.get(*index).unwrap();
+            let (mut x, mut y) = (bish_loc.x, bish_loc.y);
+            // NE
+            if king_loc.x > bish_loc.x && king_loc.y < bish_loc.y {
+                while x < king_loc.x && y > king_loc.y {
+                    x += 1;
+                    y -= 1;
+                    danger_zone.push(Point {x, y});
+                }
+            }
+            // NW
+            if king_loc.x < bish_loc.x && king_loc.y < bish_loc.y {
+                while x > king_loc.x && y > king_loc.y {
+                    x -= 1;
+                    y -= 1;
+                    danger_zone.push(Point {x, y});
+                }
+            }
+            // SE
+            if king_loc.x > bish_loc.x && king_loc.y > bish_loc.y {
+                while x < king_loc.x && king_loc.y < y {
+                    x += 1;
+                    y += 1;
+                    danger_zone.push(Point {x, y});
+                }
+            }
+            // SW
+            if king_loc.x < bish_loc.x && king_loc.y > bish_loc.y {
+                while x > king_loc.x && king_loc.y > y {
+                    x -= 1;
+                    y += 1;
+                    danger_zone.push(Point {x, y});
+                }
+            }
+        },
+
+        // Pawn just needs to highlight the King's square
+        Type::Pawn => danger_zone.push(Point {x: king_loc.x, y: king_loc.y}),
+
+        Type::Rook => {
+            let rook_loc = pieces.locations.get(*index).unwrap();
+            let (mut x, mut y) = (rook_loc.x, rook_loc.y);
+
+            // North
+            while y > king_loc.y {
+                y -= 1;
+                danger_zone.push(Point{x, y});
+            }
+
+            // South
+            while y < king_loc.y {
+                y += 1;
+                danger_zone.push(Point{x, y});
+            }
+
+            // East
+            while x < king_loc.x {
+                x += 1;
+                danger_zone.push(Point{x, y});
+            }
+
+            // West
+            while x > king_loc.x {
+                x -= 1;
+                danger_zone.push(Point{x, y});
+            }
+        },
+
+        Type::Queen => {
+            let queen_loc = pieces.locations.get(*index).unwrap();
+            let (mut x, mut y) = (queen_loc.x, queen_loc.y);
+
+            // Ensures King has same Y or X value for Rook moves
+            if (x == king_loc.x || y == king_loc.y) {
+                // North
+                while y > king_loc.y {
+                    y -= 1;
+                    danger_zone.push(Point{x, y});
+                }
+
+                // South
+                while y < king_loc.y {
+                    y += 1;
+                    danger_zone.push(Point{x, y});
+                }
+
+                // East
+                while x < king_loc.x {
+                    x += 1;
+                    danger_zone.push(Point{x, y});
+                }
+
+                // West
+                while x > king_loc.x {
+                    x -= 1;
+                    danger_zone.push(Point{x, y});
+                }
+            }
+            else {
+                // NE
+                if king_loc.x > queen_loc.x && king_loc.y < queen_loc.y {
+                    while x < king_loc.x && y > king_loc.y {
+                        x += 1;
+                        y -= 1;
+                        danger_zone.push(Point {x, y});
+                    }
+                }
+                // NW
+                if king_loc.x < queen_loc.x && king_loc.y < queen_loc.y {
+                    while x > king_loc.x && y > king_loc.y {
+                        x -= 1;
+                        y -= 1;
+                        danger_zone.push(Point {x, y});
+                    }
+                }
+                // SE
+                if king_loc.x > queen_loc.x && king_loc.y > queen_loc.y {
+                    while x < king_loc.x && king_loc.y < y {
+                        x += 1;
+                        y += 1;
+                        danger_zone.push(Point {x, y});
+                    }
+                }
+                // SW
+                if king_loc.x < queen_loc.x && king_loc.y > queen_loc.y {
+                    while x > king_loc.x && king_loc.y > y {
+                        x -= 1;
+                        y += 1;
+                        danger_zone.push(Point {x, y});
+                    }
+                }
+            }
+
+        },
+
+        Type::Knight => danger_zone.push(Point{ x: king_loc.x, y: king_loc.y}),
+
+        Type::King | _ => {unreachable!()}
+    }
+}
+
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -106,147 +250,7 @@ fn main() -> Result<(), String> {
 
                 // Obtain the type of the predator pieces to get pathing
                 for index in &predators_index {
-                    match *pieces.types.get(*index).unwrap() {
-                        Type::Bishop => {
-                            let bish_loc = pieces.locations.get(*index).unwrap();
-                            let (mut x, mut y) = (bish_loc.x, bish_loc.y);
-                            // NE
-                            if king_loc.x > bish_loc.x && king_loc.y < bish_loc.y {
-                                while x < king_loc.x && y > king_loc.y {
-                                    x += 1;
-                                    y -= 1;
-                                    danger_zone.push(Point {x, y});
-                                } 
-                            }
-                            // NW
-                            if king_loc.x < bish_loc.x && king_loc.y < bish_loc.y {
-                                while x > king_loc.x && y > king_loc.y {
-                                    x -= 1;
-                                    y -= 1;
-                                    danger_zone.push(Point {x, y});
-                                }
-                            }
-                            // SE
-                            if king_loc.x > bish_loc.x && king_loc.y > bish_loc.y {
-                                while x < king_loc.x && king_loc.y < y {
-                                    x += 1;
-                                    y += 1;
-                                    danger_zone.push(Point {x, y});
-                                }
-                            }
-                            // SW
-                            if king_loc.x < bish_loc.x && king_loc.y > bish_loc.y {
-                                while x > king_loc.x && king_loc.y > y {
-                                    x -= 1;
-                                    y += 1;
-                                    danger_zone.push(Point {x, y});
-                                }
-                            }
-                        },
-
-                        // Pawn just needs to highlight the King's square 
-                        Type::Pawn => danger_zone.push(Point {x: king_loc.x, y: king_loc.y}),
-
-                        Type::Rook => {
-                            let rook_loc = pieces.locations.get(*index).unwrap();
-                            let (mut x, mut y) = (rook_loc.x, rook_loc.y);
-
-                            // North
-                            while y > king_loc.y {
-                                y -= 1;
-                                danger_zone.push(Point{x, y});
-                            }
-
-                            // South
-                            while y < king_loc.y {
-                                y += 1;
-                                danger_zone.push(Point{x, y});
-                            }
-
-                            // East
-                            while x < king_loc.x {
-                                x += 1;
-                                danger_zone.push(Point{x, y});
-                            }
-
-                            // West
-                            while x > king_loc.x {
-                                x -= 1;
-                                danger_zone.push(Point{x, y});
-                            }
-                        },
-
-                        Type::Queen => {
-                            let queen_loc = pieces.locations.get(*index).unwrap();
-                            let (mut x, mut y) = (queen_loc.x, queen_loc.y);
-
-                            // Ensures King has same Y or X value for Rook moves
-                            if (x == king_loc.x || y == king_loc.y) {
-                                // North
-                                while y > king_loc.y {
-                                    y -= 1;
-                                    danger_zone.push(Point{x, y});
-                                }
-
-                                // South
-                                while y < king_loc.y {
-                                    y += 1;
-                                    danger_zone.push(Point{x, y});
-                                }
-
-                                // East
-                                while x < king_loc.x {
-                                    x += 1;
-                                    danger_zone.push(Point{x, y});
-                                }
-
-                                // West
-                                while x > king_loc.x {
-                                    x -= 1;
-                                    danger_zone.push(Point{x, y});
-                                }
-                            }
-                            else {
-                                // NE
-                                if king_loc.x > queen_loc.x && king_loc.y < queen_loc.y {
-                                    while x < king_loc.x && y > king_loc.y {
-                                        x += 1;
-                                        y -= 1;
-                                        danger_zone.push(Point {x, y});
-                                    } 
-                                }
-                                // NW
-                                if king_loc.x < queen_loc.x && king_loc.y < queen_loc.y {
-                                    while x > king_loc.x && y > king_loc.y {
-                                        x -= 1;
-                                        y -= 1;
-                                        danger_zone.push(Point {x, y});
-                                    }
-                                }
-                                // SE
-                                if king_loc.x > queen_loc.x && king_loc.y > queen_loc.y {
-                                    while x < king_loc.x && king_loc.y < y {
-                                        x += 1;
-                                        y += 1;
-                                        danger_zone.push(Point {x, y});
-                                    }
-                                }
-                                // SW
-                                if king_loc.x < queen_loc.x && king_loc.y > queen_loc.y {
-                                    while x > king_loc.x && king_loc.y > y {
-                                        x -= 1;
-                                        y += 1;
-                                        danger_zone.push(Point {x, y});
-                                    }
-                                }
-                            }
-
-                        },
-
-                       Type::Knight => danger_zone.push(Point{ x: king_loc.x, y: king_loc.y}), 
-                        
-                       Type::King | _ => {unreachable!()}
-                    }
+                    get_danger_zone(&pieces, &mut danger_zone, &king_loc, index);
                 }
 
                 renderer.render_board()?;
@@ -263,9 +267,6 @@ fn main() -> Result<(), String> {
                                 y: (y / (SCREEN_HEIGHT / 8) as i32) as u32,
                             };
                             if first_click {
-                                debug!("FIRST CLICK");
-                                debug!("Predators_index: {predators_index:?}");
-
                                 // If only one piece puts King at risk,
                                 // another piece can block the path or kill the predator
                                 if predators_index.is_empty() {
@@ -276,13 +277,10 @@ fn main() -> Result<(), String> {
                                 if predators_index.len() == 1 {
                                     // 1. Find all pieces of the same color as prey
                                     let prey_loc = pieces.locations[prey_index];
-                                    debug!("Prey location: {prey_loc:?}");
                                     let prey_color = pieces.colors.get(prey_index).unwrap();
-                                    debug!("Prey Color: {prey_color:?}");
 
                                     // Index of pieces of the same color as endangered King
                                     let defense_pieces: Vec<usize> = pieces.colors.iter().enumerate().filter(|(_, x)| *x == prey_color).map(|(i, _)| i).collect();
-                                    debug!("Prey Teammates: {defense_pieces:?}");
 
                                     // Contains index to pieces that can kill predator 
                                     let mut defenders: Vec<usize> = vec![];
@@ -290,19 +288,15 @@ fn main() -> Result<(), String> {
                                     // 2. Check if any piece can kill predator OR can block danger
                                     //    path.
                                     let pred_loc: Point = pieces.locations[predators_index[0]];
-                                    debug!("Predator's location: {pred_loc:?}");
                                     for idx in defense_pieces {
                                         let (valid_moves, valid_kills) = pieces.possible_moves(&squares, idx);
                                         if valid_kills.iter().any(|x| *x == pred_loc) 
                                         || valid_moves.iter().any(|p| danger_zone.contains(p) && *p != prey_loc) {
-                                            println!("Defender type: {:?}", pieces.types[idx]);
                                             defenders.push(idx);
                                         }
                                     }
-                                    debug!("Defenders: {defenders:?}");
                                     // 3. Ensure those that pass #3 will take King out of check
                                     // 4. Only allow those to move.
-
                                     if let Some(selected_idx) = pieces.locations.iter().position(|p| *p == clicked) {
                                         if defenders.contains(&selected_idx) || selected_idx == prey_index {
                                             let (def_initial_valid_moves, def_initial_valid_kills) = pieces.possible_moves(&squares, selected_idx);
@@ -311,7 +305,7 @@ fn main() -> Result<(), String> {
                                                 .filter(|p| !danger_zone.contains(p))
                                                 .map(|p| *p)
                                                 .collect()};
-                                            debug!("Defender Valid Moves: {defender_valid_moves:?}");
+
                                             current_piece = pieces.locations[selected_idx];
                                             renderer.render_board()?;
                                             renderer.render_selected(&squares, &pieces, selected_idx)?;
@@ -319,7 +313,7 @@ fn main() -> Result<(), String> {
                                             renderer.render_kills(&squares, &defender_valid_kills)?;
                                             renderer.render_pieces(&squares, &pieces)?;
                                             first_click = false;
-                                            debug!("First_click: {first_click}");
+
                                         }
                                         
                                     }
@@ -332,8 +326,6 @@ fn main() -> Result<(), String> {
                             else {
                                 debug!("Second click!");
 
-                                debug!("Valid Kills: {defender_valid_kills:?}");
-                                debug!("Valid Moves: {defender_valid_moves:?}");
                                 if pieces.move_piece(&defender_valid_moves, &defender_valid_kills, &current_piece, &clicked).unwrap() {
                                     state = State::Play;
                                     renderer.render_board()?;
@@ -379,7 +371,7 @@ fn main() -> Result<(), String> {
                                 };
 
                                 // Renders moves for selected piece
-                                debug!("This piece is: {:?}", selected_type);
+                                debug!("Selected Piece: {:?}", selected_type);
                                 if selected_type.is_some() {
                                     (valid_moves, valid_kills) = pieces.possible_moves(&squares, current_piece_loc.unwrap());
                                     if selected_type.unwrap() == &Type::King {
@@ -395,8 +387,6 @@ fn main() -> Result<(), String> {
                                             }
                                         }
                                     }
-                                    debug!("Valid moves: {valid_moves:?}");
-                                    debug!("Valid kills: {valid_kills:?}");
 
                                     renderer.render_board()?;
                                     renderer.render_selected(&squares, &pieces, current_piece_loc.unwrap())?;
@@ -418,8 +408,6 @@ fn main() -> Result<(), String> {
                                     state = State::Check;
                                     prey_index = tup.1;
                                 }
-
-                                debug!("Prey_index: {prey_index}");
 
                                 debug!("Current state: {state:?}");
                             }
