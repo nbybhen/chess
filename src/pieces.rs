@@ -612,6 +612,7 @@ impl Pieces {
         Ok(was_moved)
     }
 
+    // Shows the possible moves a selected piece can make while in State::Check
     pub fn possible_check_moves(&mut self, squares: &Squares, piece_index: usize, danger_locations: &Vec<Point>) -> Vec<Point> {
         let piece_type = self.types.get(piece_index).unwrap();
 
@@ -630,10 +631,152 @@ impl Pieces {
                 ret.push(pnt);
             }
         }
-
         ret
+    }
 
-    } 
+    pub(crate) fn get_danger_zone(self, danger_zone: &mut Vec<Point>, king_loc: &Point, index: &usize) {
+        match self.types.get(*index).unwrap() {
+            Type::Bishop => {
+                let bish_loc = self.locations.get(*index).unwrap();
+                let (mut x, mut y) = (bish_loc.x, bish_loc.y);
+                // NE
+                if king_loc.x > bish_loc.x && king_loc.y < bish_loc.y {
+                    while x < king_loc.x && y > king_loc.y {
+                        x += 1;
+                        y -= 1;
+                        danger_zone.push(Point {x, y});
+                    }
+                }
+                // NW
+                if king_loc.x < bish_loc.x && king_loc.y < bish_loc.y {
+                    while x > king_loc.x && y > king_loc.y {
+                        x -= 1;
+                        y -= 1;
+                        danger_zone.push(Point {x, y});
+                    }
+                }
+                // SE
+                if king_loc.x > bish_loc.x && king_loc.y > bish_loc.y {
+                    while x < king_loc.x && king_loc.y < y {
+                        x += 1;
+                        y += 1;
+                        danger_zone.push(Point {x, y});
+                    }
+                }
+                // SW
+                if king_loc.x < bish_loc.x && king_loc.y > bish_loc.y {
+                    while x > king_loc.x && king_loc.y > y {
+                        x -= 1;
+                        y += 1;
+                        danger_zone.push(Point {x, y});
+                    }
+                }
+            },
+
+            // Pawn just needs to highlight the King's square
+            Type::Pawn => danger_zone.push(Point {x: king_loc.x, y: king_loc.y}),
+
+            Type::Rook => {
+                let rook_loc = self.locations.get(*index).unwrap();
+                let (mut x, mut y) = (rook_loc.x, rook_loc.y);
+
+                // North
+                while y > king_loc.y {
+                    y -= 1;
+                    danger_zone.push(Point{x, y});
+                }
+
+                // South
+                while y < king_loc.y {
+                    y += 1;
+                    danger_zone.push(Point{x, y});
+                }
+
+                // East
+                while x < king_loc.x {
+                    x += 1;
+                    danger_zone.push(Point{x, y});
+                }
+
+                // West
+                while x > king_loc.x {
+                    x -= 1;
+                    danger_zone.push(Point{x, y});
+                }
+            },
+
+            Type::Queen => {
+                let queen_loc = self.locations.get(*index).unwrap();
+                let (mut x, mut y) = (queen_loc.x, queen_loc.y);
+
+                // Ensures King has same Y or X value for Rook moves
+                if (x == king_loc.x || y == king_loc.y) {
+                    // North
+                    while y > king_loc.y {
+                        y -= 1;
+                        danger_zone.push(Point{x, y});
+                    }
+
+                    // South
+                    while y < king_loc.y {
+                        y += 1;
+                        danger_zone.push(Point{x, y});
+                    }
+
+                    // East
+                    while x < king_loc.x {
+                        x += 1;
+                        danger_zone.push(Point{x, y});
+                    }
+
+                    // West
+                    while x > king_loc.x {
+                        x -= 1;
+                        danger_zone.push(Point{x, y});
+                    }
+                }
+                else {
+                    // NE
+                    if king_loc.x > queen_loc.x && king_loc.y < queen_loc.y {
+                        while x < king_loc.x && y > king_loc.y {
+                            x += 1;
+                            y -= 1;
+                            danger_zone.push(Point {x, y});
+                        }
+                    }
+                    // NW
+                    if king_loc.x < queen_loc.x && king_loc.y < queen_loc.y {
+                        while x > king_loc.x && y > king_loc.y {
+                            x -= 1;
+                            y -= 1;
+                            danger_zone.push(Point {x, y});
+                        }
+                    }
+                    // SE
+                    if king_loc.x > queen_loc.x && king_loc.y > queen_loc.y {
+                        while x < king_loc.x && king_loc.y < y {
+                            x += 1;
+                            y += 1;
+                            danger_zone.push(Point {x, y});
+                        }
+                    }
+                    // SW
+                    if king_loc.x < queen_loc.x && king_loc.y > queen_loc.y {
+                        while x > king_loc.x && king_loc.y > y {
+                            x -= 1;
+                            y += 1;
+                            danger_zone.push(Point {x, y});
+                        }
+                    }
+                }
+
+            },
+
+            Type::Knight => danger_zone.push(Point{ x: king_loc.x, y: king_loc.y}),
+
+            Type::King | _ => {unreachable!()}
+        }
+    }
 }
 
 

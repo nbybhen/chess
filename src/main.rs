@@ -25,39 +25,6 @@ use std::time::Duration;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
-// Changes state to Check if King is at risk, and returns King's index
-fn is_king_endangered(squares: &Squares, pieces: &mut Pieces, pred_index: &mut Vec<usize>) -> (bool, usize) {
-    let num_of_pieces: usize = pieces.locations.len();
-
-    let black_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::Black).unwrap();
-    let white_king_index = pieces.types.iter().enumerate().position(|(i, t)| *t == Type::King && *pieces.colors.get(i).unwrap() == PieceColor::White).unwrap();
-
-    let mut pred_exists: bool = false;
-    let mut prey_index: usize = usize::MAX;
-    
-    // Checks if each piece has a King in it's kill path
-    for index in 0..num_of_pieces {
-        let (_, valid_kills) = pieces.possible_moves(&squares, index);
-        for pnt in valid_kills {
-            if &pnt == pieces.locations.get(black_king_index).unwrap() {
-                debug!("Black King in DANGER!");
-                pred_index.push(index);
-                pred_exists = true;
-                prey_index = black_king_index;
-            }
-
-            if &pnt == pieces.locations.get(white_king_index).unwrap() {
-                debug!("White King in DANGER!");
-                pred_index.push(index);
-                pred_exists = true;
-                prey_index = white_king_index;
-            }
-        }
-    } 
-
-    (pred_exists, prey_index)
-}
-
 fn get_danger_zone(pieces: &Pieces, danger_zone: &mut Vec<Point>, king_loc: &Point, index: &usize) {
     match *pieces.types.get(*index).unwrap() {
         Type::Bishop => {
@@ -241,7 +208,6 @@ fn main() -> Result<(), String> {
     // Event Loop
     'running: loop {
         match state {
-            // Checks if it is in CHECK
             State::Check => {
                  debug!("Predator(s) are {:?}", predators_index.iter().map(|x| pieces.types.get(*x).unwrap()).collect::<Vec<_>>());
 
@@ -258,7 +224,7 @@ fn main() -> Result<(), String> {
                 renderer.render_pieces(&squares, &pieces)?;
 
 
-                for event in events.wait_iter() {
+                for event in events.poll_iter() {
                     match event {
                         Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
                         Event::MouseButtonDown { x, y, .. } => {
@@ -309,7 +275,7 @@ fn main() -> Result<(), String> {
                                             current_piece = pieces.locations[selected_idx];
                                             renderer.render_board()?;
                                             renderer.render_selected(&squares, &pieces, selected_idx)?;
-                                            renderer.render_moves(&squares, &defender_valid_moves);
+                                            renderer.render_moves(&squares, &defender_valid_moves)?;
                                             renderer.render_kills(&squares, &defender_valid_kills)?;
                                             renderer.render_pieces(&squares, &pieces)?;
                                             first_click = false;
@@ -327,12 +293,13 @@ fn main() -> Result<(), String> {
                                 debug!("Second click!");
 
                                 if pieces.move_piece(&defender_valid_moves, &defender_valid_kills, &current_piece, &clicked).unwrap() {
-                                    state = State::Play;
-                                    renderer.render_board()?;
-                                    renderer.render_pieces(&squares, &pieces);
-
                                     // Empties vector
                                     predators_index = vec![];
+                                    state = State::Play;
+                                    debug!("Changed state to: {state:?}");
+
+                                    renderer.render_board()?;
+                                    renderer.render_pieces(&squares, &pieces);
 
                                 }
                                 else {
@@ -346,7 +313,6 @@ fn main() -> Result<(), String> {
                         _ => {}
                     }
                 }
-
             }
             State::Play => {
                 for event in events.poll_iter() {
@@ -397,17 +363,13 @@ fn main() -> Result<(), String> {
                                 }
                             } else {
                                 debug!("SECOND CLICK");
-                                //debug!("Coords: X: {:}, Y: {:}", clicked.x, clicked.y);
                                 pieces.move_piece(&valid_moves, &valid_kills, &current_piece, &clicked)?;
                                 renderer.render_board()?;
                                 renderer.render_pieces(&squares, &pieces)?;
                                 first_click = true;
 
-                                let tup = is_king_endangered(&squares, &mut pieces, &mut predators_index);
-                                if tup.0 {
-                                    state = State::Check;
-                                    prey_index = tup.1;
-                                }
+                                state = state.is_king_endangered(&squares, &mut pieces, &mut predators_index, &mut prey_index);
+
 
                                 debug!("Current state: {state:?}");
                             }
